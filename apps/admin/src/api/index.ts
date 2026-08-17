@@ -202,10 +202,10 @@ export interface OkResult {
 
 // ---------- 登录 ----------
 export const adminLogin = (username: string, password: string) =>
-  http<AdminLoginResult>({ method: 'post', url: '/admin/login', data: { username, password } });
+  http<AdminLoginResult>({ method: 'post', url: '/api/admin/login', data: { username, password } });
 
 // ---------- 仪表盘 ----------
-export const fetchDashboard = () => http<DashboardData>({ method: 'get', url: '/admin/dashboard' });
+export const fetchDashboard = () => http<DashboardData>({ method: 'get', url: '/api/admin/dashboard' });
 
 // ---------- 课程 ----------
 export const fetchCourses = (params: {
@@ -213,125 +213,125 @@ export const fetchCourses = (params: {
   pageSize?: number;
   category?: string;
   search?: string;
-}) => http<PageResult<AdminCourseRow>>({ method: 'get', url: '/admin/courses', params });
+}) => http<PageResult<AdminCourseRow>>({ method: 'get', url: '/api/admin/courses', params });
 
 export const fetchCourseDetail = (id: number) =>
-  http<AdminCourseDetail>({ method: 'get', url: `/admin/courses/${id}` });
+  http<AdminCourseDetail>({ method: 'get', url: `/api/admin/courses/${id}` });
 
 export const createCourse = (data: { title: string; description: string; coverUrl: string; category: string; learnerCount: number; sort: number }) =>
-  http<CourseItem>({ method: 'post', url: '/admin/courses', data });
+  http<CourseItem>({ method: 'post', url: '/api/admin/courses', data });
 
 export const updateCourse = (id: number, data: Partial<{ title: string; description: string; coverUrl: string; category: string; learnerCount: number; sort: number }>) =>
-  http<CourseItem>({ method: 'put', url: `/admin/courses/${id}`, data });
+  http<CourseItem>({ method: 'put', url: `/api/admin/courses/${id}`, data });
 
 export const deleteCourse = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/courses/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/courses/${id}` });
 
 // ---------- 视频 ----------
 export const createVideo = (data: VideoPayload) =>
-  http<VideoItem>({ method: 'post', url: '/admin/videos', data });
+  http<VideoItem>({ method: 'post', url: '/api/admin/videos', data });
 
 export const updateVideo = (id: number, data: Partial<VideoPayload>) =>
-  http<VideoItem>({ method: 'put', url: `/admin/videos/${id}`, data });
+  http<VideoItem>({ method: 'put', url: `/api/admin/videos/${id}`, data });
 
 export const deleteVideo = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/videos/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/videos/${id}` });
 
 // ---------- 真相弹窗 ----------
 export const upsertPopup = (videoId: number, content: string) =>
-  http<PopupItem>({ method: 'post', url: '/admin/popups', data: { videoId, content } });
+  http<PopupItem>({ method: 'post', url: '/api/admin/popups', data: { videoId, content } });
 
 // ---------- 测试题 ----------
 export const createQuiz = (data: QuizPayload) =>
-  http<QuizQuestion>({ method: 'post', url: '/admin/quiz', data });
+  http<QuizQuestion>({ method: 'post', url: '/api/admin/quiz', data });
 
 export const updateQuiz = (id: number, data: Partial<QuizPayload>) =>
-  http<QuizQuestion>({ method: 'put', url: `/admin/quiz/${id}`, data });
+  http<QuizQuestion>({ method: 'put', url: `/api/admin/quiz/${id}`, data });
 
 export const deleteQuiz = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/quiz/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/quiz/${id}` });
 
 // ---------- 测评 ----------
 export const fetchAnalysisList = (params: { page?: number; pageSize?: number; status?: string; riskLevel?: string }) =>
-  http<PageResult<AdminAnalysisRow>>({ method: 'get', url: '/admin/analysis', params });
+  http<PageResult<AdminAnalysisRow>>({ method: 'get', url: '/api/admin/analysis', params });
 
 export const fetchAnalysisDetail = (id: number) =>
-  http<AdminAnalysisDetail>({ method: 'get', url: `/admin/analysis/${id}` });
+  http<AdminAnalysisDetail>({ method: 'get', url: `/api/admin/analysis/${id}` });
 
 export const reviewAnalysis = (id: number, data: ReviewPayload) =>
-  http<AdminAnalysisDetail>({ method: 'put', url: `/admin/analysis/${id}/review`, data });
+  http<AdminAnalysisDetail>({ method: 'put', url: `/api/admin/analysis/${id}/review`, data });
 
 export const rerunAnalysis = (id: number) =>
-  http<{ ok: boolean; message: string }>({ method: 'post', url: `/admin/analysis/${id}/rerun` });
+  http<{ ok: boolean; message: string }>({ method: 'post', url: `/api/admin/analysis/${id}/rerun` });
 
 // ---------- 故事 ----------
 export const fetchStories = (params: { page?: number; pageSize?: number; status?: string }) =>
-  http<PageResult<AdminStoryRow>>({ method: 'get', url: '/admin/stories', params });
+  http<PageResult<AdminStoryRow>>({ method: 'get', url: '/api/admin/stories', params });
 
 export const fetchStoryDetail = (id: number) =>
-  http<AdminStoryDetail>({ method: 'get', url: `/admin/stories/${id}` });
+  http<AdminStoryDetail>({ method: 'get', url: `/api/admin/stories/${id}` });
 
 export const approveStory = (id: number) =>
-  http<StoryItem>({ method: 'post', url: `/admin/stories/${id}/approve` });
+  http<StoryItem>({ method: 'post', url: `/api/admin/stories/${id}/approve` });
 
 export const rejectStory = (id: number, reason: string) =>
-  http<StoryItem>({ method: 'post', url: `/admin/stories/${id}/reject`, data: { reason } });
+  http<StoryItem>({ method: 'post', url: `/api/admin/stories/${id}/reject`, data: { reason } });
 
 export const deleteStory = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/stories/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/stories/${id}` });
 
 // ---------- 评论 ----------
 export const fetchComments = (params: { storyId?: number; page?: number; pageSize?: number }) =>
-  http<PageResult<AdminCommentRow>>({ method: 'get', url: '/admin/comments', params });
+  http<PageResult<AdminCommentRow>>({ method: 'get', url: '/api/admin/comments', params });
 
 export const deleteComment = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/comments/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/comments/${id}` });
 
 // ---------- 电台 ----------
 export const fetchRadioList = (params: { page?: number; pageSize?: number }) =>
-  http<PageResult<RadioEpisode>>({ method: 'get', url: '/admin/radio', params });
+  http<PageResult<RadioEpisode>>({ method: 'get', url: '/api/admin/radio', params });
 
 export const createRadio = (data: RadioPayload) =>
-  http<RadioEpisode>({ method: 'post', url: '/admin/radio', data });
+  http<RadioEpisode>({ method: 'post', url: '/api/admin/radio', data });
 
 export const updateRadio = (id: number, data: Partial<RadioPayload>) =>
-  http<RadioEpisode>({ method: 'put', url: `/admin/radio/${id}`, data });
+  http<RadioEpisode>({ method: 'put', url: `/api/admin/radio/${id}`, data });
 
 export const deleteRadio = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/radio/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/radio/${id}` });
 
 // ---------- 用户 ----------
 export const fetchUsers = (params: { page?: number; pageSize?: number; search?: string; status?: string }) =>
-  http<PageResult<AdminUserRow>>({ method: 'get', url: '/admin/users', params });
+  http<PageResult<AdminUserRow>>({ method: 'get', url: '/api/admin/users', params });
 
 export const fetchUserDetail = (id: number) =>
-  http<AdminUserDetail>({ method: 'get', url: `/admin/users/${id}` });
+  http<AdminUserDetail>({ method: 'get', url: `/api/admin/users/${id}` });
 
 export const setUserBan = (id: number, banned: boolean) =>
-  http<{ ok: boolean; status: string }>({ method: 'put', url: `/admin/users/${id}/ban`, data: { banned } });
+  http<{ ok: boolean; status: string }>({ method: 'put', url: `/api/admin/users/${id}/ban`, data: { banned } });
 
 /** 重置某条学习记录（清除误报 watchedSeconds；若关联课程已发证书则一并撤销） */
 export const resetLearningRecord = (recordId: number) =>
   http<{ ok: boolean; certificateRevoked: boolean }>({
     method: 'post',
-    url: `/admin/learning-records/${recordId}/reset`,
+    url: `/api/admin/learning-records/${recordId}/reset`,
   });
 
 // ---------- 风险词库 ----------
-export const fetchLexicon = () => http<RiskWord[]>({ method: 'get', url: '/admin/lexicon' });
+export const fetchLexicon = () => http<RiskWord[]>({ method: 'get', url: '/api/admin/lexicon' });
 
 export const createLexiconWord = (data: LexiconPayload) =>
-  http<RiskWord>({ method: 'post', url: '/admin/lexicon', data });
+  http<RiskWord>({ method: 'post', url: '/api/admin/lexicon', data });
 
 export const updateLexiconWord = (id: number, data: Partial<LexiconPayload> & { active?: boolean }) =>
-  http<RiskWord>({ method: 'put', url: `/admin/lexicon/${id}`, data });
+  http<RiskWord>({ method: 'put', url: `/api/admin/lexicon/${id}`, data });
 
 export const deleteLexiconWord = (id: number) =>
-  http<OkResult>({ method: 'delete', url: `/admin/lexicon/${id}` });
+  http<OkResult>({ method: 'delete', url: `/api/admin/lexicon/${id}` });
 
 // ---------- 统计 ----------
-export const fetchStatsOverview = () => http<StatsOverview>({ method: 'get', url: '/admin/stats/overview' });
+export const fetchStatsOverview = () => http<StatsOverview>({ method: 'get', url: '/api/admin/stats/overview' });
 
 // ---------- 操作日志 ----------
 export const fetchLogs = (limit = 100) =>
-  http<OperationLogRow[]>({ method: 'get', url: '/admin/logs', params: { limit } });
+  http<OperationLogRow[]>({ method: 'get', url: '/api/admin/logs', params: { limit } });

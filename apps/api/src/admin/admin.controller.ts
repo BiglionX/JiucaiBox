@@ -28,7 +28,7 @@ class LoginDto {
   password: string;
 }
 
-@Controller('admin')
+@Controller('api/admin')
 @UseGuards(AdminJwtGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}

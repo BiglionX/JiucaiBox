@@ -25,7 +25,7 @@ export class JwtAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
 
     // 管理后台路由由 AdminJwtGuard 独立鉴权（token 体系不同），此处直接放行
-    if (req.path?.startsWith('/admin')) return true;
+    if (req.path?.startsWith('/api/admin')) return true;
 
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),

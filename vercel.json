@@ -1,0 +1,31 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install && npm run prisma:generate --workspace apps/api",
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "apps/admin/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "apps/api/src/vercel.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "rewrites": [
+    { "source": "/api/admin/:path*", "destination": "/apps/api/src/vercel.ts" },
+    { "source": "/api/:path*", "destination": "/apps/api/src/vercel.ts" },
+    { "source": "/admin", "destination": "/apps/admin/dist/index.html" },
+    { "source": "/admin/:path*", "destination": "/apps/admin/dist/index.html" },
+    { "source": "/:path*", "destination": "/apps/web/dist/index.html" }
+  ]
+}
