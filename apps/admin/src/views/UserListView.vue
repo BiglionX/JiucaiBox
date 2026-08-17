@@ -102,11 +102,25 @@
             :columns="learningColumns"
             :pagination="false"
             size="small"
-            row-key="videoId"
+            row-key="recordId"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'updatedAt'">
                 {{ formatDateTime(record.updatedAt) }}
+              </template>
+              <template v-else-if="column.key === 'watched'">
+                <a-tag v-if="record.watchedSeconds > 0" color="blue">{{ record.watchedSeconds }}s</a-tag>
+                <span v-else>-</span>
+              </template>
+              <template v-else-if="column.key === 'action'">
+                <a-popconfirm
+                  title="重置该学习记录？将清空观看时长；若该课程已颁发证书将一并撤销。"
+                  ok-text="重置"
+                  cancel-text="取消"
+                  @confirm="onResetRecord(record)"
+                >
+                  <a-button type="link" size="small" danger>重置</a-button>
+                </a-popconfirm>
               </template>
             </template>
           </a-table>
@@ -177,7 +191,7 @@ import { computed, onMounted, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import { SearchOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons-vue';
 import { RISK_LEVEL_META, type RiskLevel } from '@jiucaibox/shared';
-import { fetchUserDetail, fetchUsers, setUserBan, type AdminUserDetail, type AdminUserRow } from '@/api';
+import { fetchUserDetail, fetchUsers, resetLearningRecord, setUserBan, type AdminUserDetail, type AdminUserRow } from '@/api';
 import { ANALYSIS_STATUS_LABELS, STORY_STATUS_COLORS, STORY_STATUS_LABELS, USER_STATUS_COLORS, USER_STATUS_LABELS } from '@/constants';
 import { useAuthStore } from '@/stores/auth';
 import { formatDateTime } from '@/utils/format';
@@ -278,8 +292,23 @@ async function openDetail(row: AdminUserRow) {
 const learningColumns = [
   { title: '视频标题', dataIndex: 'videoTitle', ellipsis: true },
   { title: '课程 ID', dataIndex: 'courseId', width: 90 },
+  { title: '已看时长', key: 'watched', width: 100 },
   { title: '学习时间', key: 'updatedAt', width: 170 },
+  { title: '操作', key: 'action', width: 80 },
 ];
+
+async function onResetRecord(record: { recordId: number }) {
+  try {
+    const res = await resetLearningRecord(record.recordId);
+    message.success(res.certificateRevoked ? '已重置，并撤销了对应证书' : '已重置学习记录');
+    // 刷新详情
+    if (userDetail.value) {
+      userDetail.value = await fetchUserDetail(userDetail.value.id);
+    }
+  } catch {
+    /* 错误提示由拦截器统一处理 */
+  }
+}
 
 const analysisColumns = [
   { title: '报告 ID', dataIndex: 'id', width: 80 },

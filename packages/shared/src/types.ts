@@ -43,7 +43,18 @@ export interface LoginResponse {
 }
 
 // ---------- 课程/视频 ----------
-export type CourseCategory = 'live' | 'finance' | 'franchise' | 'experience' | 'truth';
+export type CourseCategory = 'live' | 'finance' | 'franchise' | 'experience' | 'truth' | 'other';
+
+/** 课程难度 */
+export type CourseDifficulty = 'entry' | 'intermediate' | 'advanced';
+
+/** 适用人群 */
+export type TargetAudience =
+  | 'all'         // 全人群
+  | 'newcomer'    // 刚毕业 / 初入社会
+  | 'parent'      // 家长
+  | 'founder'     // 创业者
+  | 'senior';     // 老年人 / 为家中老人
 
 export const COURSE_CATEGORY_LABELS: Record<CourseCategory, string> = {
   live: '直播行业真相课',
@@ -51,6 +62,27 @@ export const COURSE_CATEGORY_LABELS: Record<CourseCategory, string> = {
   franchise: '韭菜致富营',
   experience: '韭菜体验营',
   truth: '真相课',
+  other: '其他',
+};
+
+export const COURSE_DIFFICULTY_LABELS: Record<CourseDifficulty, string> = {
+  entry: '入门',
+  intermediate: '进阶',
+  advanced: '深度',
+};
+
+export const COURSE_DIFFICULTY_COLORS: Record<CourseDifficulty, string> = {
+  entry: '#4CAF50',        // 绿
+  intermediate: '#FF9800', // 橙
+  advanced: '#F44336',     // 红
+};
+
+export const TARGET_AUDIENCE_LABELS: Record<TargetAudience, string> = {
+  all: '全人群',
+  newcomer: '应届毕业生',
+  parent: '家长',
+  founder: '创业者',
+  senior: '中老年',
 };
 
 export interface VideoItem {
@@ -77,6 +109,14 @@ export interface CourseItem {
   videoCount?: number;
   learnedCount?: number;
   progress?: number; // 0-100
+  // —— 教学化画像 ——
+  difficulty?: CourseDifficulty;
+  targetAudience?: TargetAudience;
+  estimatedMinutes?: number;
+  summary?: string;
+  outcomes?: string[];
+  warningTips?: string[];
+  updatedAt?: string;
 }
 
 export interface CourseDetail extends CourseItem {
@@ -209,11 +249,28 @@ export interface RadioEpisode {
 // ---------- 通知 ----------
 export interface AppNotification {
   id: number;
-  type: 'system' | 'review' | 'interaction';
+  type: 'system' | 'review' | 'interaction' | 'cert_issued';
   title: string;
   content: string;
+  /** 课程完成证书专用：关联课程 ID */
+  courseId?: number;
   read: boolean;
   createdAt: string;
+}
+
+/**
+ * 课程完成证书元数据。
+ * certId = AppNotification.id（颁发通知的 ID），可作为防伪/查询 key。
+ * pdfUrl 当前未实现真实 PDF 生成，预留字段以便后续接入 CDN/OSS。
+ */
+export interface Certificate {
+  certId: number;
+  courseId: number;
+  courseTitle: string;
+  userId: number;
+  userNickname: string;
+  issuedAt: string;
+  pdfUrl?: string | null;
 }
 
 // ---------- 学习记录 ----------
@@ -300,5 +357,11 @@ export interface StatsOverview {
   storyTrend: { date: string; count: number }[];
   riskRatio: { level: RiskLevel; count: number }[];
   topRiskTypes: { type: string; count: number }[];
+  /**
+   * 课程完课率。
+   * completionRate：
+   *  - 0-100：实际完课率 = 已覆盖全部视频的用户课程对数 / 有学习记录的用户课程对数 × 100
+   *  - -1：该课程暂无任何学习记录（前端应展示「暂无数据」）
+   */
   courseCompletion: { title: string; completionRate: number }[];
 }

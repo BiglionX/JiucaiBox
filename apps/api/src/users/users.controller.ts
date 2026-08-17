@@ -77,6 +77,16 @@ export class UsersController {
     return this.usersService.notifications(user.userId);
   }
 
+  @Get('certificates')
+  myCertificates(@CurrentUser() user: JwtUser) {
+    return this.usersService.myCertificates(user.userId);
+  }
+
+  @Get('certificates/:id')
+  certificateDetail(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+    return this.usersService.certificateDetail(user.userId, id);
+  }
+
   @Post('notifications/read')
   markRead(@CurrentUser() user: JwtUser, @Body() dto: MarkReadDto) {
     return this.usersService.markRead(user.userId, dto.ids);

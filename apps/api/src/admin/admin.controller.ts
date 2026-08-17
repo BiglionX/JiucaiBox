@@ -298,6 +298,17 @@ export class AdminController {
     });
   }
 
+  // ---------- 学习记录重置（修正误报的 watchedSeconds / 撤销误发证书） ----------
+  @Roles('super_admin', 'support')
+  @Post('learning-records/:id/reset')
+  resetLearningRecord(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentAdmin() admin: JwtAdmin,
+    @Req() req: any,
+  ) {
+    return this.adminService.resetLearningRecord(id, admin, req.ip);
+  }
+
   // ---------- 风险词库 ----------
   @Roles(...CONTENT_ROLES)
   @Get('lexicon')

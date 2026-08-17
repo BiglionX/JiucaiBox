@@ -114,6 +114,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '消息通知' },
   },
   {
+    path: '/mine/certificates',
+    name: 'mine-certificates',
+    component: () => import('@/views/MineCertificatesView.vue'),
+    meta: { title: '我的证书' },
+  },
+  {
+    path: '/mine/certificates/:id',
+    name: 'mine-certificate-detail',
+    component: () => import('@/views/CertificateDetailView.vue'),
+    meta: { title: '学习证书' },
+  },
+  {
     path: '/mine/settings',
     name: 'mine-settings',
     component: () => import('@/views/SettingsView.vue'),

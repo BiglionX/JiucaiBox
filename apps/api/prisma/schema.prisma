@@ -4,6 +4,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // 自定义输出到应用内目录：避免与 node_modules 中被占用/锁定的默认生成目录冲突，
+  // 也方便 monorepo 内直接引用生成代码
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -32,6 +35,7 @@ model User {
   notifications   AppNotification[]
   learningRecords LearningRecord[]
   testResults     UserTestResult[]
+  certificates    Certificate[]
 }
 
 // ---------- 管理后台用户 ----------
@@ -48,18 +52,27 @@ model AdminUser {
 
 // ---------- 课程 / 视频 ----------
 model Course {
-  id            Int             @id @default(autoincrement())
-  title         String
-  description   String?
-  coverUrl      String?
-  category      String          @default("truth") // live | finance | franchise | experience | truth
-  isFree        Boolean         @default(true)
-  learnerCount  Int             @default(0)
-  sort          Int             @default(0)
-  createdAt     DateTime        @default(now())
-  videos        Video[]
-  quizQuestions QuizQuestion[]
-  radioEpisodes RadioEpisode[]
+  id               Int             @id @default(autoincrement())
+  title            String
+  description      String?
+  coverUrl         String?
+  category         String          @default("truth") // live | finance | franchise | experience | truth | other
+  isFree           Boolean         @default(true)
+  learnerCount     Int             @default(0)
+  sort             Int             @default(0)
+  // —— 课程画像（教学化）——
+  difficulty       String          @default("entry")        // entry | intermediate | advanced
+  targetAudience   String          @default("all")          // all | newcomer | parent | founder | senior
+  estimatedMinutes Int             @default(0)              // 课程总时长（分钟），由视频求和自动覆写
+  summary          String?                                  // 一句话简介（卡片/列表展示）
+  outcomes         Json            @default("[]")           // 学习目标 ["了解 X","识别 Y"...]
+  warningTips      Json            @default("[]")           // 警示要点 ["切勿 ...","必查 ..."]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  videos           Video[]
+  quizQuestions    QuizQuestion[]
+  radioEpisodes    RadioEpisode[]
+  certificates     Certificate[]
 }
 
 model Video {
@@ -201,13 +214,34 @@ model AppNotification {
   id        Int      @id @default(autoincrement())
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   @default("system") // system | review | interaction
+  type      String   @default("system") // system | review | interaction | cert_issued
   title     String
   content   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ---------- 学习证书 ----------
+// 用户完成课程（全部"有时长"的视频达成 watchedSeconds ≥ duration×90%）时颁发。
+// (userId, courseId) 唯一，避免重复颁发。
+model Certificate {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   Int
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // 颁发时刻的视频快照（用户昵称 / 课程名）防止后续资料被修改后证书失真
+  userNicknameSnapshot  String
+  courseTitleSnapshot   String
+  // 预留 PDF 链接位（当前 MVP 不生成真实 PDF，仅留字段供后续接入）
+  pdfUrl      String?
+  issuedAt    DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
 }
 
 // ---------- 学习记录 ----------

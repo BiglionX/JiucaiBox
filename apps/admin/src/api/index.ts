@@ -121,7 +121,14 @@ export interface AdminUserDetail {
   status: 'active' | 'banned';
   createdAt: string;
   lastActiveAt?: string;
-  learning: { videoId: number; videoTitle: string; courseId: number; updatedAt: string }[];
+  learning: {
+    recordId: number;
+    videoId: number;
+    videoTitle: string;
+    courseId: number;
+    watchedSeconds: number;
+    updatedAt: string;
+  }[];
   analysis: {
     id: number;
     sourceUrl: string;
@@ -302,6 +309,13 @@ export const fetchUserDetail = (id: number) =>
 
 export const setUserBan = (id: number, banned: boolean) =>
   http<{ ok: boolean; status: string }>({ method: 'put', url: `/admin/users/${id}/ban`, data: { banned } });
+
+/** 重置某条学习记录（清除误报 watchedSeconds；若关联课程已发证书则一并撤销） */
+export const resetLearningRecord = (recordId: number) =>
+  http<{ ok: boolean; certificateRevoked: boolean }>({
+    method: 'post',
+    url: `/admin/learning-records/${recordId}/reset`,
+  });
 
 // ---------- 风险词库 ----------
 export const fetchLexicon = () => http<RiskWord[]>({ method: 'get', url: '/admin/lexicon' });

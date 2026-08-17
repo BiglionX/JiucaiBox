@@ -11,7 +11,7 @@
       </div>
 
       <a-table
-        :data-source="list"
+        :data-source="pageData"
         :columns="columns"
         :loading="loading"
         row-key="id"

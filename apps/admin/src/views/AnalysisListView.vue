@@ -260,15 +260,12 @@ async function loadList() {
   loading.value = true;
   try {
     const params: Record<string, string | number> = { page: page.value, pageSize: pageSize.value };
-    if (status.value !== 'all') {
-      if (status.value === 'reviewed') {
-        // 后端暂不支持 reviewed 状态过滤：以「已完成 + reviewed 标记」请求，
-        // 后端支持 reviewed 参数后可直接生效
-        params.status = 'done';
-        params.reviewed = 1;
-      } else {
-        params.status = status.value;
-      }
+    if (status.value === 'reviewed') {
+      // 「已复核」是 reviewed 标记的状态，不属于 report.status 的合法值，
+      // 通过 reviewed=1 走后端独立过滤；其它值直接透传给 status
+      params.reviewed = 1;
+    } else if (status.value !== 'all') {
+      params.status = status.value;
     }
     if (riskLevel.value !== 'all') params.riskLevel = riskLevel.value;
     const res = await fetchAnalysisList(params);

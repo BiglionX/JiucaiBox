@@ -15,6 +15,7 @@ export class RadioService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: { relatedCourse: true },
       }),
     ]);
     return { total, page, pageSize, list: list.map((r) => this.toEpisode(r)) };

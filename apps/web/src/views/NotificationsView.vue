@@ -16,6 +16,7 @@ const TYPE_META: Record<AppNotification['type'], { icon: string; color: string }
   system: { icon: 'volume-o', color: '#4CAF50' },
   review: { icon: 'edit', color: '#FF9800' },
   interaction: { icon: 'chat-o', color: '#2196F3' },
+  cert_issued: { icon: 'certificate', color: '#FA8C16' },
 };
 
 async function load() {
@@ -37,6 +38,15 @@ async function markRead(item: AppNotification) {
   } catch {
     // 已提示
   }
+}
+
+/** 证书通知点击 → 跳转证书详情 */
+function onNotifyClick(item: AppNotification) {
+  if (item.type === 'cert_issued') {
+    router.push('/mine/certificates');
+    return;
+  }
+  void markRead(item);
 }
 
 async function markAllRead() {
@@ -69,7 +79,7 @@ onMounted(load);
         v-for="item in list"
         :key="item.id"
         class="card notify-item pressable"
-        @click="markRead(item)"
+        @click="onNotifyClick(item)"
       >
         <span
           class="notify-item__icon"

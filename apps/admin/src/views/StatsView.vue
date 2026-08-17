@@ -3,7 +3,11 @@
     <!-- 7 天趋势 -->
     <a-row :gutter="[16, 16]">
       <a-col :xs="24" :lg="8">
-        <a-card title="用户增长趋势（近 7 天）">
+        <a-card
+          title="用户增长趋势（近 7 天）"
+          data-focus-key="growth"
+          :class="{ 'focus-card': focusKey === 'growth' }"
+        >
           <TrendChart :data="data.userGrowth" color="#1677ff" />
         </a-card>
       </a-col>
@@ -22,7 +26,11 @@
     <a-row :gutter="[16, 16]" class="row-gap">
       <!-- 风险等级占比 -->
       <a-col :xs="24" :lg="10">
-        <a-card title="风险等级占比">
+        <a-card
+          title="风险等级占比"
+          data-focus-key="risk"
+          :class="{ 'focus-card': focusKey === 'risk' }"
+        >
           <div v-if="riskTotal === 0" class="empty-tip">暂无已评级的测评报告</div>
           <div v-else class="ratio-bars">
             <div v-for="level in riskLevels" :key="level" class="ratio-row">
@@ -62,7 +70,17 @@
     </a-row>
 
     <!-- 课程完课率 -->
-    <a-card title="课程完课率" class="row-gap">
+    <a-card
+      class="row-gap"
+      title="课程完课率"
+      data-focus-key="completion"
+      :class="{ 'focus-card': focusKey === 'completion' }"
+    >
+      <template #extra>
+        <a-tooltip title="口径：覆盖了课程全部视频的用户课程对数 ÷ 有学习记录的用户课程对数 × 100。">
+          <QuestionCircleOutlined class="title-tip" />
+        </a-tooltip>
+      </template>
       <div v-if="!data.courseCompletion.length" class="empty-tip">暂无课程数据</div>
       <div v-else class="completion-list">
         <div v-for="item in data.courseCompletion" :key="item.title" class="completion-row">
@@ -70,10 +88,12 @@
             <span class="completion-title">{{ item.title }}</span>
           </a-tooltip>
           <a-progress
+            v-if="item.completionRate >= 0"
             class="completion-progress"
             :percent="item.completionRate"
             :status="item.completionRate === 100 ? 'success' : 'active'"
           />
+          <span v-else class="empty-text">暂无数据</span>
         </div>
       </div>
     </a-card>
@@ -81,19 +101,52 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { QuestionCircleOutlined } from '@ant-design/icons-vue';
 import { RISK_LEVEL_META, RISK_LEVELS, type RiskLevel, type StatsOverview } from '@jiucaibox/shared';
 import { fetchStatsOverview } from '@/api';
 import TrendChart from '@/components/TrendChart.vue';
 
+const route = useRoute();
 const data = ref<StatsOverview | null>(null);
+
+/** Dashboard 等入口跳转时携带的定位键：growth / risk / completion */
+const focusKey = ref<string>('');
 
 const riskLevels = [...RISK_LEVELS] as RiskLevel[];
 
 async function load() {
   data.value = await fetchStatsOverview();
+  // 数据加载完成后再尝试滚动到 focus 卡片
+  await nextTick();
+  applyFocus();
 }
-onMounted(load);
+
+function readFocus() {
+  const raw = route.query.focus;
+  focusKey.value = typeof raw === 'string' ? raw : '';
+}
+
+function applyFocus() {
+  if (!focusKey.value) return;
+  const key = focusKey.value;
+  // 通过 data-focus-key 属性定位区块，避免依赖 DOM 顺序
+  const el = document.querySelector(`[data-focus-key="${key}"]`) as HTMLElement | null;
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 1.5s 后清除高亮
+    window.setTimeout(() => {
+      focusKey.value = '';
+    }, 1500);
+  }
+}
+
+watch(() => route.query.focus, readFocus);
+onMounted(() => {
+  readFocus();
+  load();
+});
 
 const riskTotal = computed(() => (data.value?.riskRatio ?? []).reduce((s, r) => s + r.count, 0));
 
@@ -119,6 +172,16 @@ function topPercent(count: number): number {
 .row-gap {
   margin-top: 16px;
 }
+.title-tip {
+  margin-left: 6px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.45);
+  cursor: help;
+}
+.focus-card {
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.35);
+  transition: box-shadow 0.4s ease;
+}
 .ratio-bars {
   padding: 8px 8px 0;
 }
@@ -140,6 +203,10 @@ function topPercent(count: number): number {
   padding: 32px 0;
   text-align: center;
   color: rgba(0, 0, 0, 0.35);
+}
+.empty-text {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 13px;
 }
 .top-row {
   display: flex;

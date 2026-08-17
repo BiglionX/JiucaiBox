@@ -36,8 +36,6 @@ export const useAuthStore = defineStore('auth', () => {
   const isSuperAdmin = computed(() => role.value === 'super_admin');
   const isContentOps = computed(() => role.value === 'super_admin' || role.value === 'content_ops');
   const isReviewer = computed(() => role.value === 'super_admin' || role.value === 'reviewer');
-  const isSupport = computed(() => role.value === 'super_admin' || role.value === 'support');
-  const isAnalyst = computed(() => role.value === 'super_admin' || role.value === 'analyst');
 
   async function login(username: string, password: string) {
     const res = await adminLogin(username, password);
@@ -69,8 +67,6 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isContentOps,
     isReviewer,
-    isSupport,
-    isAnalyst,
     login,
     logout,
     can,

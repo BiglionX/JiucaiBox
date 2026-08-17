@@ -22,6 +22,9 @@ apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 apps/api/prisma/migrations/dev.db
 
+# Prisma generated client (platform-specific build artifact, run `prisma generate`)
+apps/api/src/generated/
+
 # Logs
 logs/
 *.log

@@ -11,11 +11,22 @@ import {
 import { CoursesService } from './courses.service';
 import { CurrentUser, JwtUser, Public } from '../common/decorators';
 import { CourseDetail, CourseItem, PageResult, PopupItem, QuizQuestion } from '@jiucaibox/shared';
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 class QuizAnswerDto {
   @IsInt()
   answer: number;
+}
+
+/**
+ * 客户端上报的观看时长（秒）。未传或 0 视为"看过但未完成"，
+ * 服务端按"已观看 ≥ 视频时长 × 90%"判定完成。
+ */
+class WatchedDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  watchedSeconds?: number;
 }
 
 @Controller('api')
@@ -44,8 +55,12 @@ export class CoursesController {
   }
 
   @Post('videos/:id/watched')
-  markWatched(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
-    return this.coursesService.markWatched(user.userId, id);
+  markWatched(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: WatchedDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.coursesService.markWatched(user.userId, id, dto.watchedSeconds);
   }
 
   @Public()

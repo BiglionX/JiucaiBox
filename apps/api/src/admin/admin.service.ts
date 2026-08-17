@@ -535,6 +535,7 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: { relatedCourse: true },
       }),
     ]);
     return {
@@ -551,6 +552,7 @@ export class AdminService {
         tricks: r.tricks,
         warning: r.warning || '',
         relatedCourseId: r.relatedCourseId,
+        relatedCourseTitle: r.relatedCourse?.title || null,
         createdAt: r.createdAt.toISOString(),
       })),
     };
@@ -672,9 +674,11 @@ export class AdminService {
       createdAt: u.createdAt.toISOString(),
       lastActiveAt: u.lastActiveAt?.toISOString(),
       learning: learning.map((l) => ({
+        recordId: l.id,
         videoId: l.videoId,
         videoTitle: l.video.title,
         courseId: l.video.courseId,
+        watchedSeconds: l.watchedSeconds,
         updatedAt: l.updatedAt.toISOString(),
       })),
       analysis: analysis.map((a) => ({
@@ -701,6 +705,38 @@ export class AdminService {
       data: { status: banned ? 'banned' : 'active' },
     });
     return { ok: true, status: banned ? 'banned' : 'active' };
+  }
+
+  /**
+   * 重置用户对某视频的学习记录（清除误报的 watchedSeconds）。
+   * 若该记录对应的课程此前已颁发证书，则一并撤销（证书 + cert_issued 通知），
+   * 以便后续重新学习后重新颁发。
+   */
+  async resetLearningRecord(recordId: number, admin: any, ip?: string) {
+    const rec = await this.prisma.learningRecord.findUnique({
+      where: { id: recordId },
+    });
+    if (!rec) throw new NotFoundException('学习记录不存在');
+
+    // 清空观看时长（保留"看过"这一事实）
+    await this.prisma.learningRecord.update({
+      where: { id: recordId },
+      data: { watchedSeconds: 0 },
+    });
+
+    // 撤销该用户-课程已颁发的证书与通知
+    const cert = await this.prisma.certificate.findUnique({
+      where: { userId_courseId: { userId: rec.userId, courseId: rec.courseId } },
+    });
+    if (cert) {
+      await this.prisma.certificate.delete({ where: { id: cert.id } });
+      await this.prisma.appNotification.deleteMany({
+        where: { userId: rec.userId, type: 'cert_issued' },
+      });
+    }
+
+    await this.log(admin, '重置学习记录', `learningRecord:${recordId}`, `userId:${rec.userId}, videoId:${rec.videoId}`, ip);
+    return { ok: true, certificateRevoked: !!cert };
   }
 
   // ---------- 风险词库 ----------
@@ -752,14 +788,19 @@ export class AdminService {
       return [...map.entries()].map(([date, count]) => ({ date, count }));
     };
 
-    const [users, analysis, stories, riskReports, doneReports, courses, learningRecs] = await Promise.all([
+    const [users, analysis, stories, riskReports, doneReports, courses, learningRecs, videos] = await Promise.all([
       this.prisma.user.findMany({ where: { createdAt: { gte: new Date(now.getTime() - 6 * 86400000) } }, select: { createdAt: true } }),
       this.prisma.analysisReport.findMany({ where: { createdAt: { gte: new Date(now.getTime() - 6 * 86400000) } }, select: { createdAt: true, riskLevel: true, aiResult: true } }),
       this.prisma.story.findMany({ where: { createdAt: { gte: new Date(now.getTime() - 6 * 86400000) } }, select: { createdAt: true } }),
       this.prisma.analysisReport.findMany({ where: { createdAt: { gte: new Date(now.getTime() - 6 * 86400000) }, riskLevel: { not: null } }, select: { riskLevel: true } }),
       this.prisma.analysisReport.findMany({ where: { status: 'done', createdAt: { gte: new Date(now.getTime() - 30 * 86400000) } }, select: { aiResult: true } }),
       this.prisma.course.findMany({ include: { _count: { select: { videos: true } } } }),
-      this.prisma.learningRecord.groupBy({ by: ['courseId'], _count: { _all: true } }),
+      // 取所有学习记录，用于按 (userId, courseId) 判断"覆盖了哪些视频"
+      this.prisma.learningRecord.findMany({
+        select: { userId: true, courseId: true, videoId: true, watchedSeconds: true },
+      }),
+      // 视频时长映射 + 所属课程，用于按完成阈值（≥ duration × 90%）判定"视频完成"
+      this.prisma.video.findMany({ select: { id: true, courseId: true, duration: true } }),
     ]);
 
     const riskRatio = [
@@ -781,7 +822,52 @@ export class AdminService {
       .slice(0, 5)
       .map(([type, count]) => ({ type, count }));
 
-    const recMap = new Map(learningRecs.map((r) => [r.courseId, r._count._all]));
+    // 完课率（per course）：
+    // - 「注册过」= 至少有一条 learningRecord
+    // - 「完成」= 该用户对某视频 watchedSeconds ≥ video.duration × 90%
+    //   （duration ≤ 0 的视频视为"无完成态"，不计入分母）
+    // - 「完课」= 用户-课程对下，所有"有时长"的视频都已完成
+    // - completionRate = 完课对数 / 注册对数 * 100
+    const videoDuration = new Map<number, number>();
+    for (const v of videos) videoDuration.set(v.id, v.duration);
+
+    // pairKey → 该用户在该课程下"已完成"的视频 ID 集合
+    const pairCompleted = new Map<string, Set<number>>();
+    // pairKey → 该用户在该课程下产生过学习记录的 videoId 集合（用于判断"注册过"）
+    const pairTouched = new Map<string, Set<number>>();
+
+    for (const r of learningRecs) {
+      const key = `${r.userId}:${r.courseId}`;
+      if (!pairTouched.has(key)) pairTouched.set(key, new Set());
+      pairTouched.get(key)!.add(r.videoId);
+
+      const duration = videoDuration.get(r.videoId) || 0;
+      if (duration > 0 && r.watchedSeconds >= Math.floor(duration * 0.9)) {
+        if (!pairCompleted.has(key)) pairCompleted.set(key, new Set());
+        pairCompleted.get(key)!.add(r.videoId);
+      }
+    }
+
+    // 课程下"有时长"的视频总数（去掉 duration=0 的）
+    const timedVideosByCourse = new Map<number, number>();
+    for (const v of videos) {
+      if (v.duration > 0) {
+        timedVideosByCourse.set(v.courseId, (timedVideosByCourse.get(v.courseId) || 0) + 1);
+      }
+    }
+    // courseId → { registered, completed }
+    const courseStats = new Map<number, { registered: number; completed: number }>();
+    for (const [key, _touched] of pairTouched) {
+      const courseId = Number(key.split(':')[1]);
+      const total = timedVideosByCourse.get(courseId) || 0;
+      const stat = courseStats.get(courseId) || { registered: 0, completed: 0 };
+      stat.registered += 1;
+      // 没有"有时长"的视频（或课程下全为 duration=0）→ 不计入完课分子
+      if (total > 0 && (pairCompleted.get(key)?.size ?? 0) >= total) {
+        stat.completed += 1;
+      }
+      courseStats.set(courseId, stat);
+    }
 
     return {
       userGrowth: groupByDay(users),
@@ -789,13 +875,17 @@ export class AdminService {
       storyTrend: groupByDay(stories),
       riskRatio,
       topRiskTypes,
-      courseCompletion: courses.map((c) => ({
-        title: c.title,
-        completionRate:
-          c._count.videos > 0
-            ? Math.min(100, Math.round(((recMap.get(c.id) || 0) / c._count.videos) * 100))
-            : 0,
-      })),
+      courseCompletion: courses.map((c) => {
+        const stat = courseStats.get(c.id);
+        // 无任何学习记录、或没有"有时长"的视频时不展示
+        if (!stat || c._count.videos <= 0) {
+          return { title: c.title, completionRate: -1 };
+        }
+        return {
+          title: c.title,
+          completionRate: Math.round((stat.completed / stat.registered) * 100),
+        };
+      }),
     };
   }
 

@@ -21,6 +21,18 @@ export const RISK_LEVEL_META: Record<
 
 export const RISK_LEVELS = ['high', 'medium', 'low'] as const;
 
+// ---------- 课程难度档位 ----------
+export const COURSE_DIFFICULTY_ORDER: ReadonlyArray<'entry' | 'intermediate' | 'advanced'> = [
+  'entry',
+  'intermediate',
+  'advanced',
+];
+
+// ---------- 适用人群档位 ----------
+export const TARGET_AUDIENCE_ORDER: ReadonlyArray<
+  'all' | 'newcomer' | 'parent' | 'founder' | 'senior'
+> = ['all', 'newcomer', 'parent', 'founder', 'senior'];
+
 // ---------- 测评维度（风险雷达图） ----------
 export const RISK_DIMENSIONS = [
   { key: 'income', name: '收益承诺' },

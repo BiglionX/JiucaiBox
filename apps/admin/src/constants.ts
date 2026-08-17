@@ -21,7 +21,6 @@ export const ANALYSIS_STATUS_COLORS: Record<string, string> = {
   pending: 'processing',
   done: 'success',
   failed: 'error',
-  reviewed: 'default',
 };
 
 /** 故事状态 */

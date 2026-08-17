@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { COURSE_CATEGORY_LABELS } from '@jiucaibox/shared';
+import { COURSE_CATEGORY_LABELS, COURSE_DIFFICULTY_LABELS, COURSE_DIFFICULTY_COLORS } from '@jiucaibox/shared';
 import type { CourseCategory } from '@jiucaibox/shared';
 import EmptyState from '@/components/EmptyState.vue';
 import { useCourseStore } from '@/stores/course';
@@ -101,6 +101,18 @@ onMounted(() => {
                 <div class="course-item__meta">
                   <span v-if="course.isFree" class="chip course-item__free">免费</span>
                   <span class="text-aux">共 {{ course.videoCount ?? 0 }} 节</span>
+                  <span v-if="course.estimatedMinutes" class="text-aux">
+                    · 约 {{ course.estimatedMinutes }} 分钟
+                  </span>
+                </div>
+                <div v-if="course.difficulty" class="course-item__chips">
+                  <span
+                    class="chip course-item__difficulty"
+                    :style="{
+                      background: COURSE_DIFFICULTY_COLORS[course.difficulty] + '22',
+                      color: COURSE_DIFFICULTY_COLORS[course.difficulty],
+                    }"
+                  >{{ COURSE_DIFFICULTY_LABELS[course.difficulty] }}</span>
                 </div>
               </div>
             </div>
@@ -173,6 +185,18 @@ onMounted(() => {
 .course-item__free {
   background: var(--danger-bg);
   color: var(--danger);
+}
+
+.course-item__chips {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+}
+
+.course-item__difficulty {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 .course-item__progress {

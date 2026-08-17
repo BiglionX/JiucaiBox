@@ -27,6 +27,7 @@ const menuGroups: { items: MenuItem[] }[] = [
       { icon: 'records-o', label: '学习记录', path: '/mine/learning' },
       { icon: 'search', label: '我的测评', path: '/mine/analysis' },
       { icon: 'like-o', label: '我的故事', path: '/mine/stories' },
+      { icon: 'certificate', label: '我的证书', path: '/mine/certificates' },
       { icon: 'chat-o', label: '我的互动', path: '/mine/interactions' },
       { icon: 'bell', label: '消息通知', path: '/mine/notifications', badge: true },
     ],

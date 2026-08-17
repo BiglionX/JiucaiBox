@@ -5,6 +5,7 @@
 import {
   type AnalysisReport,
   type AppNotification,
+  type Certificate,
   type CourseCategory,
   type CourseDetail,
   type CourseItem,
@@ -137,6 +138,14 @@ export const userApi = {
     return get<AppNotification[]>('/user/notifications');
   },
 
+  getCertificates(): Promise<Certificate[]> {
+    return get<Certificate[]>('/user/certificates');
+  },
+
+  getCertificateDetail(id: number | string): Promise<Certificate> {
+    return get<Certificate>(`/user/certificates/${id}`);
+  },
+
   markNotificationsRead(ids: number[]): Promise<unknown> {
     return post<unknown>('/user/notifications/read', { ids });
   },
@@ -178,9 +187,15 @@ export const courseApi = {
     return get<CourseDetail>(`/courses/${id}`);
   },
 
-  /** 标记视频已学（需登录） */
-  markWatched(videoId: number): Promise<{ ok: boolean }> {
-    return post<{ ok: boolean }>(`/videos/${videoId}/watched`);
+  /** 标记视频已学（需登录）。可选传入已观看秒数（内嵌播放器心跳场景） */
+  markWatched(
+    videoId: number,
+    watchedSeconds?: number,
+  ): Promise<{ ok: boolean; completed: boolean; watchedSeconds: number }> {
+    return post<{ ok: boolean; completed: boolean; watchedSeconds: number }>(
+      `/videos/${videoId}/watched`,
+      typeof watchedSeconds === 'number' ? { watchedSeconds } : undefined,
+    );
   },
 
   /** 获取视频真相弹窗内容；视频无配置时后端返回 404（skipErrorToast 静默） */

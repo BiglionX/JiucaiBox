@@ -16,7 +16,7 @@
     <a-row :gutter="[16, 16]" class="row-gap">
       <!-- 风险等级分布（近 7 天） -->
       <a-col :xs="24" :lg="14">
-        <a-card title="风险等级分布（近 7 天）">
+        <a-card title="风险等级分布（近 7 天）" hoverable class="risk-card" @click="router.push('/stats?focus=risk')">
           <a-spin :spinning="loading">
             <div v-if="riskTotal === 0" class="empty-tip">近 7 天暂无已评级的测评报告</div>
             <div v-else class="risk-bars">
@@ -103,10 +103,11 @@ onMounted(load);
 const statCards = computed(() => {
   const today = data.value?.today;
   return [
+    // 跳到对应业务页；StatsView 走 focus 参数直达统计区块
     { title: '今日新增用户', value: today?.newUsers ?? 0, to: '/users', color: '#1677ff' },
     { title: '今日测评提交', value: today?.analysisCount ?? 0, to: '/analysis', color: '#722ed1' },
     { title: '待审核故事', value: today?.pendingStories ?? 0, to: '/stories', color: '#fa8c16' },
-    { title: '今日完课数', value: today?.completedVideos ?? 0, to: '/stats', color: '#52c41a' },
+    { title: '今日学习行为', value: today?.completedVideos ?? 0, to: '/stats?focus=completion', color: '#52c41a' },
   ];
 });
 
@@ -137,6 +138,9 @@ const storyColumns = [
 
 <style scoped>
 .stat-card {
+  cursor: pointer;
+}
+.risk-card {
   cursor: pointer;
 }
 .row-gap {

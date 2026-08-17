@@ -1,8 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { COURSE_DISCLAIMER, COURSE_CATEGORY_LABELS } from '@jiucaibox/shared';
-import type { CourseDetail, QuizQuestion, VideoItem } from '@jiucaibox/shared';
+import {
+  COURSE_DISCLAIMER,
+  COURSE_CATEGORY_LABELS,
+  COURSE_DIFFICULTY_LABELS,
+  COURSE_DIFFICULTY_COLORS,
+  TARGET_AUDIENCE_LABELS,
+} from '@jiucaibox/shared';
+import type {
+  CourseDetail,
+  CourseDifficulty,
+  QuizQuestion,
+  TargetAudience,
+  VideoItem,
+} from '@jiucaibox/shared';
 import { courseApi } from '@/api';
 import QuizCard from '@/components/QuizCard.vue';
 import TruthPopup from '@/components/TruthPopup.vue';
@@ -24,6 +36,16 @@ const truthContent = ref('');
 const categoryLabel = computed(() =>
   course.value ? (COURSE_CATEGORY_LABELS[course.value.category] ?? '课程') : '',
 );
+
+const difficulty = computed<CourseDifficulty>(() => course.value?.difficulty ?? 'entry');
+const difficultyLabel = computed(() => COURSE_DIFFICULTY_LABELS[difficulty.value]);
+const difficultyColor = computed(() => COURSE_DIFFICULTY_COLORS[difficulty.value]);
+const audience = computed<TargetAudience>(() => course.value?.targetAudience ?? 'all');
+const audienceLabel = computed(() => TARGET_AUDIENCE_LABELS[audience.value]);
+const estimated = computed(() => course.value?.estimatedMinutes ?? 0);
+const summary = computed(() => course.value?.summary ?? '');
+const outcomes = computed<string[]>(() => course.value?.outcomes ?? []);
+const warningTips = computed<string[]>(() => course.value?.warningTips ?? []);
 
 async function load() {
   loading.value = true;
@@ -55,13 +77,18 @@ async function openVideo(video: VideoItem) {
   }
   window.open(video.videoUrl, '_blank');
 
-  // 标记已学（不阻塞交互）
+  // 标记已学（不阻塞交互）。外链跳转场景拿不到 currentTime，
+  // 不传 watchedSeconds；服务端按"看过（未必完成）"处理。
   courseApi
     .markWatched(video.id)
-    .then(() => {
+    .then((res) => {
       const target = course.value?.videos.find((v) => v.id === video.id);
       if (target) target.watched = true;
       if (course.value) {
+        // 完成态以服务端判定为准：≥ 视频时长 × 90% 才计入 learnedCount
+        // 当前未传 watchedSeconds，completed 总是 false；保留逻辑以便
+        // 未来内嵌播放器接入时直接复用。
+        void res;
         const learned = course.value.videos.filter((v) => v.watched).length;
         course.value.learnedCount = learned;
         course.value.progress = Math.round((learned / course.value.videos.length) * 100);
@@ -116,6 +143,38 @@ onMounted(() => {
         </div>
         <div class="course-head__desc">{{ course.description }}</div>
         <div class="course-head__disclaimer text-aux">{{ COURSE_DISCLAIMER }}</div>
+      </div>
+    </div>
+
+    <!-- 课程画像 -->
+    <div v-if="summary || outcomes.length || warningTips.length" class="card course-profile">
+      <div v-if="summary" class="course-profile__summary">{{ summary }}</div>
+
+      <div class="course-profile__chips">
+        <span
+          class="chip course-profile__chip"
+          :style="{ background: difficultyColor + '22', color: difficultyColor }"
+        >难度 · {{ difficultyLabel }}</span>
+        <span class="chip course-profile__chip course-profile__chip--audience">
+          适用 · {{ audienceLabel }}
+        </span>
+        <span class="chip course-profile__chip course-profile__chip--time">
+          ⏱ 约 {{ estimated }} 分钟
+        </span>
+      </div>
+
+      <div v-if="outcomes.length" class="course-profile__block">
+        <div class="course-profile__title">学习目标</div>
+        <ul class="course-profile__list course-profile__list--ok">
+          <li v-for="(o, i) in outcomes" :key="`o-${i}`">{{ o }}</li>
+        </ul>
+      </div>
+
+      <div v-if="warningTips.length" class="course-profile__block">
+        <div class="course-profile__title course-profile__title--warn">警示要点</div>
+        <ul class="course-profile__list course-profile__list--warn">
+          <li v-for="(t, i) in warningTips" :key="`w-${i}`">{{ t }}</li>
+        </ul>
       </div>
     </div>
 
@@ -211,6 +270,92 @@ onMounted(() => {
   background: var(--bg);
   border-radius: 6px;
   padding: 8px 10px;
+}
+
+.course-profile {
+  margin-top: 12px;
+}
+
+.course-profile__summary {
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.course-profile__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.course-profile__chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-sub);
+}
+
+.course-profile__chip--audience {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.course-profile__chip--time {
+  background: var(--bg);
+  color: var(--text-sub);
+}
+
+.course-profile__block {
+  margin-top: 8px;
+}
+
+.course-profile__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.course-profile__title--warn::before {
+  content: '⚠️';
+  font-size: 13px;
+}
+
+.course-profile__list {
+  padding-left: 18px;
+  margin: 0;
+  list-style: none;
+}
+
+.course-profile__list li {
+  position: relative;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-main);
+  padding-left: 4px;
+  margin-bottom: 2px;
+}
+
+.course-profile__list--ok li::before {
+  content: '✓';
+  position: absolute;
+  left: -16px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.course-profile__list--warn li::before {
+  content: '✗';
+  position: absolute;
+  left: -16px;
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .video-item {

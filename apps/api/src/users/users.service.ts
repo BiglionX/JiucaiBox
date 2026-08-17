@@ -215,6 +215,34 @@ export class UsersService {
     }));
   }
 
+  /** 我的学习证书列表（最新在前） */
+  async myCertificates(userId: number) {
+    const list = await this.prisma.certificate.findMany({
+      where: { userId },
+      orderBy: { issuedAt: 'desc' },
+    });
+    return list.map((c) => this.toCertificate(c));
+  }
+
+  /** 证书详情（校验归属） */
+  async certificateDetail(userId: number, certId: number) {
+    const cert = await this.prisma.certificate.findUnique({ where: { id: certId } });
+    if (!cert || cert.userId !== userId) throw new NotFoundException('证书不存在');
+    return this.toCertificate(cert);
+  }
+
+  private toCertificate(c: any) {
+    return {
+      certId: c.id,
+      courseId: c.courseId,
+      courseTitle: c.courseTitleSnapshot,
+      userId: c.userId,
+      userNickname: c.userNicknameSnapshot,
+      issuedAt: c.issuedAt.toISOString(),
+      pdfUrl: c.pdfUrl ?? null,
+    };
+  }
+
   async markRead(userId: number, ids: number[]) {
     await this.prisma.appNotification.updateMany({
       where: { userId, id: { in: ids } },
