@@ -1,0 +1,250 @@
+// 韭菜学院 / JiucaiBox 数据库模型
+// 默认 SQLite（本地零依赖开发），生产切 MySQL（docker-compose 提供）。
+// 为避免方言差异，统一使用可移植类型：Int/String/Boolean/DateTime/Json/Float。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = env("DB_PROVIDER")
+  url      = env("DATABASE_URL")
+}
+
+// ---------- 用户 ----------
+model User {
+  id              Int                @id @default(autoincrement())
+  openid          String?            @unique
+  phone           String?            @unique
+  nickname        String
+  avatar          String?
+  bio             String?
+  isAnonymous     Boolean            @default(true)
+  status          String             @default("active") // active | banned
+  createdAt       DateTime           @default(now())
+  lastActiveAt    DateTime           @default(now())
+  analysisReports AnalysisReport[]
+  stories         Story[]
+  comments        StoryComment[]
+  hugs            StoryHug[]
+  notifications   AppNotification[]
+  learningRecords LearningRecord[]
+  testResults     UserTestResult[]
+}
+
+// ---------- 管理后台用户 ----------
+model AdminUser {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique
+  password   String
+  nickname   String
+  role       String   @default("content_ops") // super_admin | content_ops | reviewer | support | analyst
+  createdAt  DateTime @default(now())
+  lastLoginAt DateTime?
+  logs       OperationLog[]
+}
+
+// ---------- 课程 / 视频 ----------
+model Course {
+  id            Int             @id @default(autoincrement())
+  title         String
+  description   String?
+  coverUrl      String?
+  category      String          @default("truth") // live | finance | franchise | experience | truth
+  isFree        Boolean         @default(true)
+  learnerCount  Int             @default(0)
+  sort          Int             @default(0)
+  createdAt     DateTime        @default(now())
+  videos        Video[]
+  quizQuestions QuizQuestion[]
+  radioEpisodes RadioEpisode[]
+}
+
+model Video {
+  id              Int              @id @default(autoincrement())
+  courseId        Int
+  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title           String
+  coverUrl        String?
+  videoUrl        String
+  duration        Int              @default(0)
+  description     String?
+  order           Int              @default(0)
+  popup           Popup?
+  learningRecords LearningRecord[]
+  createdAt       DateTime         @default(now())
+
+  @@index([courseId])
+}
+
+// 真相弹窗
+model Popup {
+  id      Int    @id @default(autoincrement())
+  videoId Int    @unique
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  content String
+}
+
+// 收益预期校准测试题
+model QuizQuestion {
+  id            Int              @id @default(autoincrement())
+  courseId      Int
+  course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter       Int              @default(1)
+  question      String
+  options       Json
+  correctOption Int
+  explanation   String?
+  userResults   UserTestResult[]
+}
+
+model UserTestResult {
+  id         Int          @id @default(autoincrement())
+  userId     Int
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId Int
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answer     Int
+  correct    Boolean
+  createdAt  DateTime     @default(now())
+
+  @@unique([userId, questionId])
+}
+
+// ---------- 反割韭菜测评 ----------
+model AnalysisReport {
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sourceUrl     String?
+  sourceType    String   @default("video") // video | article | other
+  inputText     String
+  riskLevel     String? // high | medium | low
+  status        String   @default("pending") // pending | done | failed
+  failReason    String?
+  aiResult      Json?
+  deepFeedback  Json?
+  deepRiskLevel String?
+  reviewed      Boolean  @default(false)
+  reviewerNote  String?
+  reviewedBy    String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ---------- 韭菜的泪花（UGC 社区）----------
+model Story {
+  id           Int            @id @default(autoincrement())
+  userId       Int
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userNickname String
+  category     String         @default("other") // live | finance | franchise | other
+  lossAmount   Float?
+  lossTypes    Json           @default("[]") // ["money","time",...]
+  title        String
+  content      String
+  lesson       String?
+  images       Json           @default("[]")
+  status       String         @default("pending") // pending | approved | rejected
+  rejectReason String?
+  createdAt    DateTime       @default(now())
+  comments     StoryComment[]
+  hugs         StoryHug[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model StoryComment {
+  id           Int      @id @default(autoincrement())
+  storyId      Int
+  story        Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userNickname String
+  content      String
+  createdAt    DateTime @default(now())
+}
+
+model StoryHug {
+  id        Int      @id @default(autoincrement())
+  storyId   Int
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, userId])
+}
+
+// ---------- 韭菜电台 ----------
+model RadioEpisode {
+  id              Int      @id @default(autoincrement())
+  title           String
+  sourceUrl       String?
+  sourceLabel     String   @default("官方通报")
+  coverUrl        String?
+  summary         String
+  tricks          Json     @default("[]") // [{name, description}]
+  warning         String?
+  relatedCourseId Int?
+  relatedCourse   Course?  @relation(fields: [relatedCourseId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+}
+
+// ---------- 通知 ----------
+model AppNotification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   @default("system") // system | review | interaction
+  title     String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ---------- 学习记录 ----------
+model LearningRecord {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoId        Int
+  video          Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  courseId       Int
+  watchedSeconds Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, videoId])
+  @@index([userId, courseId])
+}
+
+// ---------- 风险词库 ----------
+model RiskWord {
+  id        Int      @id @default(autoincrement())
+  word      String
+  category  String // income | urgency | fakeCase | opaque | compliance
+  weight    Float    @default(1)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([word, category])
+}
+
+// ---------- 管理后台操作日志 ----------
+model OperationLog {
+  id        Int      @id @default(autoincrement())
+  adminId   Int?
+  admin     AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  adminName String
+  action    String
+  target    String?
+  detail    String?
+  ip        String?
+  createdAt DateTime @default(now())
+}

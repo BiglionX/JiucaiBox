@@ -1,0 +1,40 @@
+# 韭菜学院 / JiucaiBox 本地基础设施（生产形态：MySQL 8 + Redis 7）
+# 本地快速开发默认使用 SQLite（apps/api/.env 中 DATABASE_URL 指向 sqlite 文件），无需启动本文件。
+# 需要 MySQL/Redis 时执行: docker compose up -d
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: jiucaibox-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: jiucaibox_root
+      MYSQL_DATABASE: jiucaibox
+      MYSQL_USER: jiucaibox
+      MYSQL_PASSWORD: jiucaibox_123456
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - jiucaibox-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ujiucaibox", "-pjiucaibox_123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: jiucaibox-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - jiucaibox-redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+volumes:
+  jiucaibox-mysql-data:
+  jiucaibox-redis-data:

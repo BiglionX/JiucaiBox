@@ -1,0 +1,18 @@
+{
+  "name": "@jiucaibox/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "韭菜学院共享类型、常量与风险词库（三端共用）",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

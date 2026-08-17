@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# npm local cache (workspace)
+.npm-cache/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Prisma
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/prisma/migrations/dev.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Uploads
+uploads/
