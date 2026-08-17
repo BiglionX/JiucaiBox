@@ -9,8 +9,8 @@
   - `/admin`、`/admin/login`、`/admin/dashboard`... → 管理后台 SPA（`apps/admin`）
   - `/api/*` → 后端 API（用户端接口，`apps/api`）
   - `/api/admin/*` → 后端 API（管理后台接口）
-- **数据库**：必须用 **MySQL**（Vercel Serverless 文件系统临时，不能用 SQLite）。免费档可选 PlanetScale / TiDB Cloud / 阿里云 RDS / Neon 等。
-- **数据初始化**：部署后在本地用生产 `DATABASE_URL` 跑一次 `npm run db:setup:prod`。
+- **数据库**：**TiDB Cloud Serverless**（MySQL 协议、真永久免费档 5 GB）。schema 保持 `provider = "mysql"`，已落地的改动全部继续有效。
+- **数据初始化**：在 TiDB SQL Editor 创建业务库后，本地用生产 `DATABASE_URL` 跑一次 `npm run db:setup:prod`。
 
 ## 1. 域名路径总览
 
@@ -62,32 +62,65 @@ Add New Project → 选 `BiglionX/JiucaiBox`：
 
 > ⚠️ Vite 的环境变量以 `VITE_` 开头才会被嵌入前端包，因此 `VITE_API_BASE` 留给"前端跨域调用"场景。默认同源时不要设。
 
-## 4. 数据库初始化（部署完成后）
+## 4. 数据库：TiDB Cloud Serverless（推荐 / 免费）
 
-Vercel Serverless 没法在构建期跑 `prisma migrate deploy`（无外部数据库连接保证），所以需要在本地用生产 `DATABASE_URL` 跑：
+### 4.1 为什么选 TiDB
 
-```bash
-# 1. 在本地终端导出生产数据库连接
-export DATABASE_URL='mysql://USER:PASSWORD@HOST:3306/DBNAME'
+| 方案 | 免费档 | MySQL 协议 | 备注 |
+|---|---|---|---|
+| **TiDB Cloud Serverless** ⭐ | 5 GB 存储 + 5 亿读/月 + 5000 万写/月，**永久** | ✅ | schema 不动（`provider="mysql"`） |
+| PlanetScale Hobby | 2024 起停止新用户免费档 | ✅ | 老账号才可能有 |
+| Railway | $5 试用额度 | ✅ | 用完即停 |
+| Turso (libSQL) | 9 GB | ❌ | 需把 schema 改回 sqlite |
+| Supabase / Neon | 0.5 GB | ❌ Postgres | 需改 schema 为 postgresql |
+| 阿里云 / 腾讯云 MySQL | 短期试用 | ✅ | 试用结束收费 |
 
-# 2. 跑迁移 + 种子数据（幂等，可重复）
-npm run db:setup:prod --workspace apps/api
+### 4.2 创建 TiDB Serverless 集群
 
-# 等价于：
-#   - npm run prisma:migrate --workspace apps/api   (开发用 migrate dev)
-#   - 实际生产用：npx prisma migrate deploy
-#   - 然后：npx prisma db seed
+1. 打开 https://tidbcloud.com → Sign up（GitHub 一键登录）
+2. **Create Cluster** → 选 **Serverless**（不是 Dedicated，Dedicated 收费）
+3. 区域建议 **Tokyo** 或 **Singapore**（Vercel 默认部署在美西 iad1，距离最近）
+4. 集群创建后进控制台 → **Connect** → 选 **Prisma** → 复制它给你的 `DATABASE_URL`
+
+URL 形如：
+```
+mysql://2LiXAyJwaq1teF5.root:<PASSWORD>@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/<DB>?ssl=...
 ```
 
-`db:setup:prod` 已配置在 `apps/api/package.json`，执行 `prisma migrate deploy && prisma db seed`。
+> ⚠️ **不要自己拼 URL**，直接从 Connect 面板复制。TiDB 要求 TLS，URL 里的 `?ssl=...` 参数是它生成的，Prisma 直连即可。
 
-种子数据包括：
+### 4.3 创建业务库（必做，否则迁移会失败）
 
-- 管理后台账号（取 `ADMIN_INIT_USERNAME` / `ADMIN_INIT_PASSWORD`，默认 `admin` / `jiucai123456`，**部署后立刻改密码**）
-- 演示用户、示例课程、视频、真相弹窗、测试题
-- 韭菜电台预警（高发新型骗局）
-- 韭菜的泪花 UGC 案例
-- 风险词库（含扩展词）
+URL 末尾默认是 `/sys`（TiDB 系统元数据库），**不能跑 Prisma 迁移**。需要先建一个业务库：
+
+1. TiDB 集群面板 → 左侧 **SQL Editor** → 连接
+2. 执行：`CREATE DATABASE jiucaibox;`
+3. 把 `DATABASE_URL` 末尾的 `/sys` 改成 `/jiucaibox`
+
+### 4.4 本地初始化 + 部署
+
+```bash
+# 1. 把生产 URL 写进本地 .env（gitignored，不会进仓库）
+#    文件：apps/api/.env
+#    内容：DATABASE_URL="mysql://2LiXAyJwaq1teF5.root:真实密码@gateway01.../jiucaibox"
+
+# 2. 跑迁移 + 种子（幂等）
+npm run db:setup:prod --workspace apps/api
+
+# 3. 部署到 Vercel 后，把同一段 DATABASE_URL 填到：
+#    Vercel 项目 → Settings → Environment Variables → DATABASE_URL
+```
+
+`db:setup:prod` = `prisma migrate deploy && prisma db seed`，幂等可重跑。
+
+种子数据包括：管理后台账号（取 `ADMIN_INIT_USERNAME` / `ADMIN_INIT_PASSWORD`）、演示用户、示例课程、视频、真相弹窗、测试题、韭菜电台、韭菜的泪花、风险词库。
+
+### 4.5 常见 TiDB 坑
+
+- **连接超时**：Vercel 函数冷启动首次连 TiDB 较慢（1-3 秒），把函数 memory 调到 1024 MB 可缓解；连接池在 NestJS 默认单例，热请求不会重连。
+- **`/sys` 不能用**：迁移前一定要建业务库。
+- **SSL**：URL 里的 `?ssl=...` 别删；删了连不上。
+- **外键**：TiDB 对外键的检查比 MySQL 宽松，但你的 schema 已经验证兼容。
 
 ## 5. 本地开发
 
