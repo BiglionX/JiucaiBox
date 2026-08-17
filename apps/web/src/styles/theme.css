@@ -1,0 +1,296 @@
+/* ============================================================
+   韭菜学院 / JiucaiBox 全局主题样式
+   移动优先、温暖克制、绿色主调
+   ============================================================ */
+
+:root {
+  /* 色彩体系（见设计说明书 5.1） */
+  --primary: #4caf50;
+  --primary-dark: #2e7d32;
+  --primary-light: #e8f5e9;
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --warning: #ff9800;
+  --warning-bg: #fff3e0;
+  --danger: #f44336;
+  --danger-bg: #fdecea;
+  --text-main: #212121;
+  --text-sub: #757575;
+  --border: #e0e0e0;
+
+  /* 圆角与间距 */
+  --radius: 8px;
+  --radius-pill: 20px;
+  --page-padding: 16px;
+
+  /* Vant 主题变量对齐 */
+  --van-primary-color: var(--primary);
+  --van-success-color: var(--primary);
+  --van-danger-color: var(--danger);
+  --van-warning-color: var(--warning);
+  --van-text-color: var(--text-main);
+  --van-text-color-2: var(--text-sub);
+  --van-border-color: var(--border);
+  --van-background-2: var(--card);
+  --van-background: var(--bg);
+  --van-radius-md: var(--radius);
+  --van-button-radius: var(--radius-pill);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-size: 16px;
+}
+
+/* 大字模式：整体放大 20%（部分浏览器 zoom 不支持时退化为根字号放大，配合 rem 生效） */
+html.large-text {
+  zoom: 1.2;
+  font-size: 19.2px;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
+/* ---------- 页面容器：移动优先单列，最大 640px 居中 ---------- */
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--page-padding);
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+/* 带底部固定导航栏/按钮的页面留白 */
+.page--with-action {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+}
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.card--tappable:active {
+  opacity: 0.85;
+  transform: scale(0.99);
+}
+
+/* ---------- 文字 ---------- */
+.text-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.text-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.text-body {
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.text-aux {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.text-primary {
+  color: var(--primary-dark);
+}
+
+/* ---------- 通用小标签 ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---------- 区块标题 ---------- */
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 20px 0 12px;
+}
+
+.section-title .more {
+  font-size: 12px;
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
+/* ---------- 高亮引用块 ---------- */
+.quote-block {
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary);
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--text-main);
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+.warning-block {
+  background: var(--warning-bg);
+  border-left: 3px solid var(--warning);
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--text-main);
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+/* ---------- 风险条（RiskRadar 用） ---------- */
+.risk-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.risk-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* ---------- 抱抱动画 ---------- */
+@keyframes hug-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hug-anim {
+  animation: hug-pop 0.4s ease;
+}
+
+/* ---------- 页面过渡 ---------- */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ---------- 空状态 ---------- */
+.empty-wrap {
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.empty-wrap .empty-emoji {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.empty-wrap .empty-text {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin-bottom: 16px;
+}
+
+/* ---------- 工具类 ---------- */
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mt8 {
+  margin-top: 8px;
+}
+
+.mt16 {
+  margin-top: 16px;
+}
+
+.mb8 {
+  margin-bottom: 8px;
+}
+
+.mb16 {
+  margin-bottom: 16px;
+}
+
+/* 按压反馈 */
+.pressable:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+/* 分隔线 */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+
+/* 导航栏与 tabbar 的 Vant 覆盖 */
+.van-nav-bar {
+  background: var(--card);
+}
+
+.van-nav-bar__title {
+  font-size: 16px;
+  font-weight: 600;
+}

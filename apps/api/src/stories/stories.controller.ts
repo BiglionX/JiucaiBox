@@ -73,7 +73,11 @@ export class StoriesController {
 
   @Post()
   create(@Body() dto: CreateStoryDto, @CurrentUser() user: JwtUser) {
-    return this.storiesService.create(user.userId, dto);
+    return this.storiesService.create(user.userId, {
+      ...dto,
+      lossTypes: dto.lossTypes || [],
+      images: dto.images || [],
+    });
   }
 
   @Post(':id/hug')

@@ -74,14 +74,14 @@ export class AdminService {
       recentStories: recentStories.map((s) => ({
         id: s.id,
         userNickname: s.userNickname,
-        category: s.category,
+        category: s.category as any,
         lossAmount: s.lossAmount,
-        lossTypes: s.lossTypes,
+        lossTypes: (s.lossTypes as any) || [],
         title: s.title,
         content: s.content,
         lesson: s.lesson || '',
-        images: s.images,
-        status: s.status,
+        images: (s.images as any) || [],
+        status: s.status as any,
         hugCount: 0,
         commentCount: 0,
         createdAt: s.createdAt.toISOString(),
@@ -294,12 +294,13 @@ export class AdminService {
   }
 
   // ---------- 测评管理 ----------
-  async analysisList(query: { status?: string; riskLevel?: string; page?: number; pageSize?: number }) {
+  async analysisList(query: { status?: string; riskLevel?: string; reviewed?: string; page?: number; pageSize?: number }) {
     const page = Number(query.page || 1);
     const pageSize = Math.min(Number(query.pageSize || 10), 50);
     const where: any = {};
     if (query.status && query.status !== 'all') where.status = query.status;
     if (query.riskLevel && query.riskLevel !== 'all') where.riskLevel = query.riskLevel;
+    if (query.reviewed && query.reviewed !== 'all') where.reviewed = query.reviewed === '1' || query.reviewed === 'true';
     const [total, list] = await Promise.all([
       this.prisma.analysisReport.count({ where }),
       this.prisma.analysisReport.findMany({
@@ -387,7 +388,7 @@ export class AdminService {
       this.prisma.story.count({ where }),
       this.prisma.story.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }], // pending 置顶
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: { _count: { select: { hugs: true, comments: true } } },
@@ -545,6 +546,7 @@ export class AdminService {
         title: r.title,
         sourceUrl: r.sourceUrl || '',
         sourceLabel: r.sourceLabel,
+        coverUrl: r.coverUrl || '',
         summary: r.summary,
         tricks: r.tricks,
         warning: r.warning || '',

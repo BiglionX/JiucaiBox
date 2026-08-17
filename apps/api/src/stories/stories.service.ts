@@ -63,7 +63,7 @@ export class StoriesService {
       category: string;
       lossAmount?: number;
       lossTypes: string[];
-      title: string;
+      title?: string;
       content: string;
       lesson?: string;
       images?: string[];

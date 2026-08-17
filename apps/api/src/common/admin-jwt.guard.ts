@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { ROLES_KEY, JwtAdmin } from './decorators';
+import { ROLES_KEY, IS_PUBLIC_KEY, JwtAdmin } from './decorators';
 
 /**
  * Admin 专用 JWT 守卫 + 角色校验。

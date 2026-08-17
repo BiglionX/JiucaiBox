@@ -48,6 +48,8 @@ npm run dev:web       # H5 前端 http://localhost:5173
 npm run dev:admin     # 管理后台 http://localhost:5174
 ```
 
+> **端口冲突？** 若本机 3000 端口被占用，可改用任意端口（如 3100）：`PORT=3100 npm run dev:api`（或 `PORT=3100 node apps/api/dist/main.js`）；同时前端 dev 时设置 `VITE_API_TARGET=http://localhost:3100` 即可让 vite 代理指向新端口。
+
 ### 演示账号
 
 | 端 | 账号 | 密码 |
@@ -99,6 +101,12 @@ npm run db:seed        # 重新灌入演示数据
 - 健康检查：`GET /api/health`
 
 完整接口契约见 `packages/shared/src/types.ts` 与各控制器源码。
+
+## 验证状态
+
+- ✅ 三端 `npm run build` 全部通过（apps/api 30 个路由、H5 23 个页面、管理后台 10 个视图）
+- ✅ API 冒烟测试 28/28 通过：`node scripts/smoke-api.mjs http://localhost:3000`（覆盖登录、首页、课程/视频/弹窗/校准、测评 AI 分析 + 深度接洽、泪花社区+抱抱+评论、电台、用户中心、管理后台登录/仪表盘/故事审核/测评复核/用户/词库/统计）
+- ✅ 已写入演示数据：管理账号 admin/jiucai123456、演示用户 13800138000、4 门课程（含真相弹窗与校准测试）、2 期电台、3 条故事（2 已发布+1 待审）、81 条风险词
 
 ## 目录
 

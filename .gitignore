@@ -8,6 +8,8 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+apps/api/prisma/dev.db*
+apps/api/api*.log
 
 # Env & secrets
 .env
@@ -24,6 +26,7 @@ apps/api/prisma/migrations/dev.db
 logs/
 *.log
 npm-debug.log*
+api*.log
 
 # OS
 .DS_Store
