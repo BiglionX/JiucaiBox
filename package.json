@@ -18,7 +18,8 @@
     "db:generate": "npm run prisma:generate --workspace apps/api",
     "db:migrate": "npm run prisma:migrate --workspace apps/api",
     "db:seed": "npm run prisma:seed --workspace apps/api",
-    "start:api": "npm run start:prod --workspace apps/api"
+    "start:api": "npm run start:prod --workspace apps/api",
+    "postinstall": "cd apps/api && prisma generate"
   },
   "engines": {
     "node": ">=20"
