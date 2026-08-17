@@ -42,8 +42,17 @@ function extractMessage(err: AxiosError): string {
   return '请求失败，请稍后重试';
 }
 
+/**
+ * API baseURL：
+ * - 本地开发走 Vite dev server 的同源 /api（由 vite.config.ts 代理到后端）
+ * - 生产部署可通过环境变量 VITE_API_BASE 覆盖为后端完整地址（含 /api 路径前缀），
+ *   例如：VITE_API_BASE=https://api.jiucaibox.example.com/api
+ * - 若使用 Vercel rewrites 把同源 /api 代理到后端，可保持不设置
+ */
+const baseURL = import.meta.env.VITE_API_BASE || '/api';
+
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL,
   timeout: 15000,
 });
 

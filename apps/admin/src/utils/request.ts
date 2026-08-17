@@ -6,8 +6,16 @@ export const TOKEN_KEY = 'jiucaibox_admin_token';
 /** 管理员信息存储 key */
 export const INFO_KEY = 'jiucaibox_admin_info';
 
+/**
+ * API baseURL：
+ * - 本地开发为空串（同源 /admin/...，由 vite.config.ts 代理到后端 3000）
+ * - 生产部署可通过环境变量 VITE_API_BASE 覆盖为后端完整地址，例如：
+ *   VITE_API_BASE=https://api.jiucaibox.example.com
+ */
+const baseURL = import.meta.env.VITE_API_BASE || '';
+
 const request = axios.create({
-  baseURL: '',
+  baseURL,
   timeout: 15000,
 });
 
