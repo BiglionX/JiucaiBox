@@ -34,17 +34,20 @@ Add New Project → 选 `BiglionX/JiucaiBox`：
 | Project Name | `jiucaibox` |
 | Framework Preset | **Other**（仓库根的 `vercel.json` 已用 `builds` 显式声明三个产物，覆盖了所有预设；不要选 Vite，monorepo 根目录会被误识别） |
 | Root Directory | **留空**（仓库根 = monorepo 根）。**不要** 设成 `apps/web`，否则 web 之外的 admin/api 全部失效。 |
-| Build & Output Settings | 全部留空 / 自动（由 `vercel.json` 中的 `builds` + `installCommand` 接管） |
+| Build & Output Settings | 全部留空 / 自动（由 `vercel.json` 中的 `builds` 接管） |
 
 `vercel.json` 关键内容：
 
-- `installCommand`：`npm install && npm run build -w @jiucaibox/shared && npm run build -w @jiucaibox/api && npx prisma@6.19.3 generate --schema=apps/api/prisma/schema.prisma`
-  - 装依赖 + 构建共享包 + 构建 API（产出 `apps/api/dist/vercel.js`，因为 `@vercel/node` 入口需要 .js）+ 生成 Prisma Client
+- **没有 `installCommand`**：Vercel CLI 58 在存在 `builds` 数组时忽略 vercel.json 顶层的 `installCommand`（legacy builds 已在 2025-09-01 弃用，行为有变）。构建共享包、构建 API、生成 Prisma Client 改由**根 `package.json` 的 `postinstall` 钩子**完成——Vercel 的默认 `npm install` 一定会触发它：
+  - `postinstall`: `npm run build -w @jiucaibox/shared && npm run prisma:generate -w apps/api && npm run build -w @jiucaibox/api`
+  - 产出 `packages/shared/dist/`、`apps/api/dist/vercel.js` 与 Prisma Client
 - 三个 builds：
-  - `apps/web/package.json` → `@vercel/static-build`（`buildCommand: npm run build -w @jiucaibox/web`，`distDir: apps/web/dist`）
-  - `apps/admin/package.json` → `@vercel/static-build`（`buildCommand: npm run build -w @jiucaibox/admin`，`distDir: apps/admin/dist`）
+  - `apps/web/package.json` → `@vercel/static-build`（`config.outputDirectory: apps/web/dist`，相对项目根）
+  - `apps/admin/package.json` → `@vercel/static-build`（`config.outputDirectory: apps/admin/dist`，相对项目根）
   - `apps/api/dist/vercel.js` → `@vercel/node`（单函数处理所有 `/api/*`；`includeFiles` 把 `apps/api/dist/**`、`node_modules/.prisma/client/**`、`packages/shared/dist/**` 打进 lambda 包，保证 Prisma 原生引擎 + NestJS 装饰器元数据齐全）
 - rewrites 把三类请求分发到对应产物。
+
+> ⚠️ **Vercel CLI 58 的 legacy builds 行为注意**：`builds[].config.buildCommand` 与 `builds[].config.distDir` 均已失效（CLI 58 只认 `config.outputDirectory`）。每个 build 的构建命令就是 `src` 目录下的默认 `npm run build`（Vercel 在 `src` 所在目录执行），恰好等于 web/admin 各自的构建脚本，因此无需也无法再指定 buildCommand。
 
 ## 3. 环境变量（Vercel → Settings → Environment Variables）
 

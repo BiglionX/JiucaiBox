@@ -1,21 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install --include=dev --include=optional --no-audit --no-fund && npm run build -w @jiucaibox/shared && npm run build -w @jiucaibox/api && npx prisma@6.19.3 generate --schema=apps/api/prisma/schema.prisma",
   "builds": [
     {
       "src": "apps/web/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "apps/web/dist",
-        "buildCommand": "npm run build -w @jiucaibox/web"
+        "outputDirectory": "apps/web/dist"
       }
     },
     {
       "src": "apps/admin/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "apps/admin/dist",
-        "buildCommand": "npm run build -w @jiucaibox/admin"
+        "outputDirectory": "apps/admin/dist"
       }
     },
     {
