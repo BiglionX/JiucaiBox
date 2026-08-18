@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install --include=dev --force && cd \"$VERCEL_PROJECT_DIR/apps/api\" && npx prisma@6.19.3 generate",
+  "installCommand": "npm install --include=dev --include=optional && cd \"$VERCEL_PROJECT_DIR/apps/api\" && npx prisma@6.19.3 generate",
   "builds": [
     {
       "src": "apps/web/package.json",
