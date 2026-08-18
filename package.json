@@ -19,7 +19,7 @@
     "db:migrate": "npm run prisma:migrate --workspace apps/api",
     "db:seed": "npm run prisma:seed --workspace apps/api",
     "start:api": "npm run start:prod --workspace apps/api",
-    "postinstall": "PATH=\"./node_modules/.bin:$PATH\" prisma generate --schema=apps/api/prisma/schema.prisma"
+    "postinstall": "node -e \"process.argv.push('generate','--schema=apps/api/prisma/schema.prisma'); require('prisma')\""
   },
   "engines": {
     "node": ">=20"
