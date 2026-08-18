@@ -22,8 +22,9 @@ apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 apps/api/prisma/migrations/dev.db
 
-# Prisma generated client (platform-specific build artifact, run `prisma generate`)
-apps/api/src/generated/
+# Prisma generated client：提交到仓库以便 Vercel 不再 install 期跑 prisma generate
+# （本地仍按需 npm run prisma:generate 重生成）
+apps/api/src/generated/runtime/
 
 # Logs
 logs/
