@@ -22,9 +22,14 @@ apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 apps/api/prisma/migrations/dev.db
 
-# Prisma generated client：提交到仓库以便 Vercel 不再 install 期跑 prisma generate
-# （本地仍按需 npm run prisma:generate 重生成）
-apps/api/src/generated/runtime/
+# Prisma generated client (regenerated via prisma generate, do not commit)
+apps/api/src/generated/
+
+# package-lock.json intentionally not tracked on this monorepo:
+# Vercel sandbox runs `npm install --include=optional` on Linux to install
+# platform-specific rollup native binaries, which would otherwise be skipped
+# if the lockfile was generated on a different platform (npm/cli#4828).
+package-lock.json
 
 # Logs
 logs/
