@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd \"$VERCEL_PROJECT_DIR\" && rm -f package-lock.json && npm install --include=dev --include=optional --no-audit --no-fund && cd apps/api && npx prisma@6.19.3 generate",
+  "installCommand": "cd \"$VERCEL_PROJECT_DIR\" && rm -f package-lock.json && npm install --include=dev --include=optional --no-audit --no-fund && npm run build --workspace packages/shared && cd apps/api && npx prisma@6.19.3 generate",
   "builds": [
     {
       "src": "apps/web/package.json",
