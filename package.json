@@ -19,7 +19,7 @@
     "db:migrate": "npm run prisma:migrate --workspace apps/api",
     "db:seed": "npm run prisma:seed --workspace apps/api",
     "start:api": "npm run start:prod --workspace apps/api",
-    "postinstall": "npm run build -w @jiucaibox/shared && npm run prisma:generate -w apps/api && npm run build -w @jiucaibox/api"
+    "postinstall": "npm run build -w @jiucaibox/shared && npx --yes prisma@6.19.3 generate --schema=apps/api/prisma/schema.prisma && npm run build -w @jiucaibox/api"
   },
   "engines": {
     "node": ">=20"
