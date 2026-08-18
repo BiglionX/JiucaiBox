@@ -6,6 +6,7 @@ generator client {
   provider = "prisma-client-js"
   // 输出到默认 node_modules/@prisma/client，Vercel install 时 npm 自动写入
   // 避免自定义输出路径在 monorepo 复杂环境下与 tsc 模块解析冲突
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

@@ -11,6 +11,10 @@
  *  - Vercel 默认 Node 运行时直接提供 Node req/res，
  *    可直接由 serverless-http 适配为 (req, res) 处理器。
  */
+// 必须先加载 reflect-metadata 让 Reflect.metadata polyfill 生效，
+// 否则 NestJS 装饰器元数据（构造器注入等）会丢失。tsc 默认会保留该
+// side-effect import（编译产物顶部出现 require('reflect-metadata')）。
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import serverless from 'serverless-http';

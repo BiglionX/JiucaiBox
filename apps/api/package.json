@@ -4,7 +4,7 @@
   "private": true,
   "description": "韭菜学院后端 API（NestJS + Prisma）",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json --noEmit",
+    "build": "tsc -p tsconfig.build.json",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",

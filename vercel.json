@@ -1,31 +1,48 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd \"$VERCEL_PROJECT_DIR\" && rm -f package-lock.json && npm install --include=dev --include=optional --no-audit --no-fund && npm run build -w packages/shared && cd apps/api && npx prisma@6.19.3 generate",
+  "installCommand": "npm install --include=dev --include=optional --no-audit --no-fund && npm run build -w @jiucaibox/shared && npm run build -w @jiucaibox/api && npx prisma@6.19.3 generate --schema=apps/api/prisma/schema.prisma",
   "builds": [
     {
       "src": "apps/web/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "apps/web/dist",
+        "buildCommand": "npm run build -w @jiucaibox/web"
       }
     },
     {
       "src": "apps/admin/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "apps/admin/dist",
+        "buildCommand": "npm run build -w @jiucaibox/admin"
       }
     },
     {
-      "src": "apps/api/src/vercel.ts",
-      "use": "@vercel/node"
+      "src": "apps/api/dist/vercel.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "apps/api/dist/**",
+          "node_modules/.prisma/client/**",
+          "packages/shared/dist/**"
+        ]
+      }
     }
   ],
   "rewrites": [
-    { "source": "/api/admin/:path*", "destination": "/apps/api/src/vercel.ts" },
-    { "source": "/api/:path*", "destination": "/apps/api/src/vercel.ts" },
+    { "source": "/api/admin/:path*", "destination": "/apps/api/dist/vercel.js" },
+    { "source": "/api/:path*", "destination": "/apps/api/dist/vercel.js" },
     { "source": "/admin", "destination": "/apps/admin/dist/index.html" },
     { "source": "/admin/:path*", "destination": "/apps/admin/dist/index.html" },
     { "source": "/:path*", "destination": "/apps/web/dist/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
   ]
 }

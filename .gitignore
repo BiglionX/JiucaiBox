@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Local Vercel CLI tools
+.vercel-tools/
+
 # npm local cache (workspace)
 .npm-cache/
 
