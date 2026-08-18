@@ -23,5 +23,9 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "overrides": {
+    "prisma": "6.19.3",
+    "@prisma/client": "6.19.3"
   }
 }
