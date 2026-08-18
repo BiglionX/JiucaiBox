@@ -1,74 +1,126 @@
-# Vercel 单项目部署指南（韭菜学院 / JiucaiBox monorepo）
+# Vercel 部署指南（韭菜学院 / JiucaiBox monorepo）
 
-本仓库是 monorepo（`apps/web` 用户端 H5、`apps/admin` 管理后台、`apps/api` NestJS 后端、`packages/shared` 共享类型）。当前配置支持把**前端 + 后端都部署在同一个 Vercel 项目**里，一个域名搞定所有访问。
+本仓库是 monorepo（`apps/web` 用户端 H5、`apps/admin` 管理后台、`apps/api` NestJS 后端、`packages/shared` 共享类型）。
+
+> ⚠️ **架构结论（重要）**：Vercel 已弃用 `vercel.json` 的 `builds` 数组（legacy builds，2025-09-01 起 legacy build image 弃用）。实测 Vercel CLI 58 会**完全忽略** `builds[].config` 里的 `buildCommand` / `outputDirectory` / `distDir`，以及顶层 `installCommand`——只识别 `src` + `use` + rewrites。因此**「单 Project + 手动 builds 数组同时承载 web/admin/api」在 CLI 58 上不可行**。
+>
+> 本仓库采用 **三个独立 Vercel Project** 的方案：每个 Project 的 Root Directory 指向对应 app 目录，让 Vercel **Framework Preset 自动检测**（web/admin 都是标准 Vite 项目，能正确识别），api 单独部署。
 
 ## 0. 一句话结论
 
-- **单 Vercel 项目**：`jiucaibox.vercel.app`
-  - `/` → 用户端 H5（`apps/web`）
-  - `/admin`、`/admin/login`、`/admin/dashboard`... → 管理后台 SPA（`apps/admin`）
-  - `/api/*` → 后端 API（用户端接口，`apps/api`）
-  - `/api/admin/*` → 后端 API（管理后台接口）
-- **数据库**：**TiDB Cloud Serverless**（MySQL 协议、真永久免费档 5 GB）。schema 保持 `provider = "mysql"`，已落地的改动全部继续有效。
+- **三个 Vercel Project**，各自独立域名：
+  - `web` Project → 用户端 H5（Root Directory = `apps/web`，Vite 自动检测）
+  - `admin` Project → 管理后台 SPA（Root Directory = `apps/admin`，Vite 自动检测）
+  - `api` Project → 后端 API（Root Directory = 仓库根，`builds` + `@vercel/node`）
+- **数据库**：**TiDB Cloud Serverless**（MySQL 协议、永久免费档 5 GB）。schema 保持 `provider = "mysql"`。
 - **数据初始化**：在 TiDB SQL Editor 创建业务库后，本地用生产 `DATABASE_URL` 跑一次 `npm run db:setup:prod`。
 
 ## 1. 域名路径总览
 
-| 用户访问 | 内容 | 实现 |
+| 访问 | 内容 | 归属 |
 |---|---|---|
-| `https://jiucaibox.vercel.app/` | H5 首页（→ `/home`） | `apps/web` SPA，rewrite `/` → `apps/web/dist/index.html` |
-| `https://jiucaibox.vercel.app/home`、`/courses`、`/stories` ... | H5 各页面 | 同上 SPA |
-| `https://jiucaibox.vercel.app/admin` | 管理后台登录页 | `apps/admin` SPA，rewrite `/admin{,/...}` → `apps/admin/dist/index.html` |
-| `https://jiucaibox.vercel.app/admin/dashboard` | 管理后台仪表盘 | 同上 SPA（前端路由） |
-| `https://jiucaibox.vercel.app/api/auth/phone` | 后端 API（用户端） | `apps/api` serverless 函数，rewrite `/api/*` → `vercel.ts` |
-| `https://jiucaibox.vercel.app/api/admin/login` | 后端 API（管理后台） | 同上函数，rewrite `/api/admin/*` → `vercel.ts` |
+| `https://jiucaibox-web.vercel.app/` | H5 首页及各页面 | web Project（SPA） |
+| `https://jiucaibox-admin.vercel.app/` | 管理后台登录页 / 仪表盘 | admin Project（SPA） |
+| `https://jiucaibox-api.vercel.app/api/auth/phone` | 后端 API（用户端） | api Project（serverless） |
+| `https://jiucaibox-api.vercel.app/api/admin/login` | 后端 API（管理后台） | api Project（serverless） |
 
-> 路径冲突处理：管理后台 SPA 用 `/admin`，管理后台 API 改用 `/api/admin`。前端 axios 调用统一写全路径（`/api/admin/...`），与 SPA 路由 `/admin/...` 不再撞车。
+> 前端通过 `VITE_API_BASE` 环境变量指向 api 域名（跨域）；后端 `WEB_ORIGIN` 放开 web/admin 两个前端域名即可。
 
-## 2. Vercel 项目配置
+## 2. 三个 Vercel Project 的配置
+
+### 2.1 web Project（用户端 H5）
 
 Add New Project → 选 `BiglionX/JiucaiBox`：
 
 | 设置项 | 值 |
 |---|---|
-| Project Name | `jiucaibox` |
-| Framework Preset | **Other**（仓库根的 `vercel.json` 已用 `builds` 显式声明三个产物，覆盖了所有预设；不要选 Vite，monorepo 根目录会被误识别） |
-| Root Directory | **留空**（仓库根 = monorepo 根）。**不要** 设成 `apps/web`，否则 web 之外的 admin/api 全部失效。 |
-| Build & Output Settings | 全部留空 / 自动（由 `vercel.json` 中的 `builds` 接管） |
+| Project Name | `jiucaibox-web` |
+| Root Directory | **`apps/web`** |
+| Framework Preset | **Vite**（自动检测，无需手填） |
+| Build Command | 自动 = `npm run build`（`apps/web` 下即 `vite build`） |
+| Output Directory | 自动 = `dist`（即 `apps/web/dist`） |
 
-`vercel.json` 关键内容：
+`apps/web/vercel.json`（本仓库已提供）只做 SPA 路由回退：
 
-- **没有 `installCommand`**：Vercel CLI 58 在存在 `builds` 数组时忽略 vercel.json 顶层的 `installCommand`（legacy builds 已在 2025-09-01 弃用，行为有变）。构建共享包、构建 API、生成 Prisma Client 改由**根 `package.json` 的 `postinstall` 钩子**完成——Vercel 的默认 `npm install` 一定会触发它：
-  - `postinstall`: `npm run build -w @jiucaibox/shared && npm run prisma:generate -w apps/api && npm run build -w @jiucaibox/api`
-  - 产出 `packages/shared/dist/`、`apps/api/dist/vercel.js` 与 Prisma Client
-- 三个 builds：
-  - `apps/web/package.json` → `@vercel/static-build`（`config.outputDirectory: apps/web/dist`，相对项目根）
-  - `apps/admin/package.json` → `@vercel/static-build`（`config.outputDirectory: apps/admin/dist`，相对项目根）
-  - `apps/api/dist/vercel.js` → `@vercel/node`（单函数处理所有 `/api/*`；`includeFiles` 把 `apps/api/dist/**`、`node_modules/.prisma/client/**`、`packages/shared/dist/**` 打进 lambda 包，保证 Prisma 原生引擎 + NestJS 装饰器元数据齐全）
-- rewrites 把三类请求分发到对应产物。
+```json
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
 
-> ⚠️ **Vercel CLI 58 的 legacy builds 行为注意**：`builds[].config.buildCommand` 与 `builds[].config.distDir` 均已失效（CLI 58 只认 `config.outputDirectory`）。每个 build 的构建命令就是 `src` 目录下的默认 `npm run build`（Vercel 在 `src` 所在目录执行），恰好等于 web/admin 各自的构建脚本，因此无需也无法再指定 buildCommand。
+环境变量：
 
-## 3. 环境变量（Vercel → Settings → Environment Variables）
+| Key | 值 | 说明 |
+|---|---|---|
+| `VITE_API_BASE` | `https://jiucaibox-api.vercel.app/api` | 前端请求 `/api/*` 时拼到该域名后（含 `/api` 前缀） |
+
+### 2.2 admin Project（管理后台）
+
+| 设置项 | 值 |
+|---|---|
+| Project Name | `jiucaibox-admin` |
+| Root Directory | **`apps/admin`** |
+| Framework Preset | **Vite**（自动检测） |
+| Build Command | 自动 = `npm run build`（`apps/admin` 下即 `vue-tsc --noEmit && vite build`） |
+| Output Directory | 自动 = `dist` |
+
+`apps/admin/vercel.json`（本仓库已提供）同样只做 SPA 回退。
+
+环境变量：
+
+| Key | 值 | 说明 |
+|---|---|---|
+| `VITE_API_BASE` | `https://jiucaibox-api.vercel.app` | admin 代码里调用 `/api/admin/...`，拼到该域名后（不含 `/api` 前缀） |
+
+### 2.3 api Project（后端 API）
+
+| 设置项 | 值 |
+|---|---|
+| Project Name | `jiucaibox-api` |
+| Root Directory | **留空（仓库根）** |
+| Framework Preset | **Other** |
+| Build Command | 留空 / 自动 |
+| Output Directory | 留空 |
+
+仓库根 `vercel.json`（本仓库已提供）用 `builds` 数组把 NestJS 编译产物挂成 serverless 函数：
+
+```json
+{
+  "builds": [
+    { "src": "apps/api/dist/vercel.js", "use": "@vercel/node" }
+  ],
+  "rewrites": [
+    { "source": "/api/admin/:path*", "destination": "/apps/api/dist/vercel.js" },
+    { "source": "/api/:path*", "destination": "/apps/api/dist/vercel.js" }
+  ]
+}
+```
+
+**关键：谁产出 `apps/api/dist/vercel.js`？** Vercel 的默认 `npm install` 一定会触发仓库根 `package.json` 的 `postinstall` 钩子（实测日志可见），它完成全部 API 构建：
+
+```json
+"postinstall": "npm run build -w @jiucaibox/shared && npm run prisma:generate -w apps/api && npm run build -w @jiucaibox/api"
+```
+
+即：构建共享包 → 生成 Prisma Client → tsc 编译 NestJS（产出 `apps/api/dist/vercel.js`）。
+
+环境变量：
 
 | Key | Value | 必填 | 说明 |
 |---|---|---|---|
-| `DATABASE_URL` | `mysql://USER:PASSWORD@HOST:3306/DBNAME` | ✅ | 生产 MySQL 连接串。**不要**填 SQLite |
-| `JWT_SECRET` | 32 位以上随机字符串 | ✅ | 用于签发 token；务必替换 `apps/api/.env.example` 里的 dev 默认值 |
+| `DATABASE_URL` | `mysql://USER:PASSWORD@HOST:4000/jiucaibox?ssl=...` | ✅ | 生产 MySQL（TiDB）连接串，**不要**填 SQLite |
+| `JWT_SECRET` | 32 位以上随机字符串 | ✅ | 签发 token；务必替换 dev 默认值 |
 | `JWT_EXPIRES_IN` | `30d` | ⭕ | 默认 30 天 |
-| `WEB_ORIGIN` | `*` 或具体域名（逗号分隔） | ⭕ | CORS 白名单；同源部署可直接填 `*` |
-| `DEEPSEEK_API_KEY` | `sk-...` | ⭕ | 启用 AI 测评；不填则使用内置规则引擎 |
+| `WEB_ORIGIN` | `https://jiucaibox-web.vercel.app,https://jiucaibox-admin.vercel.app`（逗号分隔，或 `*`） | ⭕ | CORS 白名单 |
+| `DEEPSEEK_API_KEY` | `sk-...` | ⭕ | 启用 AI 测评；不填则用内置规则引擎 |
 | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | ⭕ | 默认值 |
 | `DEEPSEEK_MODEL` | `deepseek-chat` | ⭕ | 默认值 |
-| `ADMIN_INIT_USERNAME` | `admin` | ⭕ | seed 时初始化管理后台账号 |
-| `ADMIN_INIT_PASSWORD` | 自定义强密码 | ✅ | seed 时初始化管理后台密码 |
-| `VITE_API_BASE` | **不填** | ⭕ | 同源部署不需要；仅当你想让前端指向跨域 API 时才设 |
+| `ADMIN_INIT_USERNAME` | `admin` | ⭕ | seed 初始化后台账号 |
+| `ADMIN_INIT_PASSWORD` | 自定义强密码 | ✅ | seed 初始化后台密码 |
 
-> ⚠️ Vite 的环境变量以 `VITE_` 开头才会被嵌入前端包，因此 `VITE_API_BASE` 留给"前端跨域调用"场景。默认同源时不要设。
+## 3. 数据库：TiDB Cloud Serverless（推荐 / 免费）
 
-## 4. 数据库：TiDB Cloud Serverless（推荐 / 免费）
-
-### 4.1 为什么选 TiDB
+### 3.1 为什么选 TiDB
 
 | 方案 | 免费档 | MySQL 协议 | 备注 |
 |---|---|---|---|
@@ -77,9 +129,8 @@ Add New Project → 选 `BiglionX/JiucaiBox`：
 | Railway | $5 试用额度 | ✅ | 用完即停 |
 | Turso (libSQL) | 9 GB | ❌ | 需把 schema 改回 sqlite |
 | Supabase / Neon | 0.5 GB | ❌ Postgres | 需改 schema 为 postgresql |
-| 阿里云 / 腾讯云 MySQL | 短期试用 | ✅ | 试用结束收费 |
 
-### 4.2 创建 TiDB Serverless 集群
+### 3.2 创建 TiDB Serverless 集群
 
 1. 打开 https://tidbcloud.com → Sign up（GitHub 一键登录）
 2. **Create Cluster** → 选 **Serverless**（不是 Dedicated，Dedicated 收费）
@@ -87,13 +138,14 @@ Add New Project → 选 `BiglionX/JiucaiBox`：
 4. 集群创建后进控制台 → **Connect** → 选 **Prisma** → 复制它给你的 `DATABASE_URL`
 
 URL 形如：
+
 ```
 mysql://2LiXAyJwaq1teF5.root:<PASSWORD>@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/<DB>?ssl=...
 ```
 
 > ⚠️ **不要自己拼 URL**，直接从 Connect 面板复制。TiDB 要求 TLS，URL 里的 `?ssl=...` 参数是它生成的，Prisma 直连即可。
 
-### 4.3 创建业务库（必做，否则迁移会失败）
+### 3.3 创建业务库（必做，否则迁移会失败）
 
 URL 末尾默认是 `/sys`（TiDB 系统元数据库），**不能跑 Prisma 迁移**。需要先建一个业务库：
 
@@ -101,7 +153,7 @@ URL 末尾默认是 `/sys`（TiDB 系统元数据库），**不能跑 Prisma 迁
 2. 执行：`CREATE DATABASE jiucaibox;`
 3. 把 `DATABASE_URL` 末尾的 `/sys` 改成 `/jiucaibox`
 
-### 4.4 本地初始化 + 部署
+### 3.4 本地初始化 + 部署
 
 ```bash
 # 1. 把生产 URL 写进本地 .env（gitignored，不会进仓库）
@@ -112,26 +164,24 @@ URL 末尾默认是 `/sys`（TiDB 系统元数据库），**不能跑 Prisma 迁
 npm run db:setup:prod --workspace apps/api
 
 # 3. 部署到 Vercel 后，把同一段 DATABASE_URL 填到：
-#    Vercel 项目 → Settings → Environment Variables → DATABASE_URL
+#    api Project → Settings → Environment Variables → DATABASE_URL
 ```
 
 `db:setup:prod` = `prisma migrate deploy && prisma db seed`，幂等可重跑。
 
 种子数据包括：管理后台账号（取 `ADMIN_INIT_USERNAME` / `ADMIN_INIT_PASSWORD`）、演示用户、示例课程、视频、真相弹窗、测试题、韭菜电台、韭菜的泪花、风险词库。
 
-### 4.5 常见 TiDB 坑
+### 3.5 常见 TiDB 坑
 
 - **连接超时**：Vercel 函数冷启动首次连 TiDB 较慢（1-3 秒），把函数 memory 调到 1024 MB 可缓解；连接池在 NestJS 默认单例，热请求不会重连。
 - **`/sys` 不能用**：迁移前一定要建业务库。
 - **SSL**：URL 里的 `?ssl=...` 别删；删了连不上。
-- **外键**：TiDB 对外键的检查比 MySQL 宽松，但你的 schema 已经验证兼容。
+- **外键**：TiDB 对外键的检查比 MySQL 宽松，但 schema 已验证兼容。
 
-## 5. 本地开发
-
-本仓库同时支持本地继续开发，与生产部署同源（Vite proxy 把 `/api/*` 和 `/admin/*` 转到本地后端）：
+## 4. 本地开发
 
 ```bash
-# 终端 1：MySQL（若不想装本地 MySQL，把 schema.prisma provider 临时改回 "sqlite" + DATABASE_URL="file:./dev.db"）
+# 终端 1：数据库（本机 MySQL 或临时把 schema.prisma provider 改回 "sqlite"）
 docker compose up -d mysql
 
 # 终端 2：安装依赖 + 迁移 + 种子（一次性）
@@ -150,60 +200,42 @@ npm run dev:admin
 
 打开 `http://localhost:5173`（H5）和 `http://localhost:5174`（管理后台）。后端在 3000，前端 dev server 把 `/api` 和 `/admin/api` 代理到 3000（见 `apps/web/vite.config.ts` 和 `apps/admin/vite.config.ts`）。
 
-## 6. 常见问题
+## 5. 常见问题
 
-**Q: 主域名打开跳到管理后台登录页 `/login?redirect=/dashboard`？**
-A: 历史问题（已修复）。旧部署里 Vercel 把 Root Directory 设到了 `apps/admin`。本仓库当前 `vercel.json` 已统一管理三个产物，按本文档部署即可。
+**Q: 为什么不用单 Vercel Project + 手动 builds 数组？**
+A: Vercel 已弃用 legacy builds（`vercel.json` 的 `builds` 数组）。CLI 58 实测会忽略 `builds[].config` 的 `buildCommand` / `outputDirectory` / `distDir` 与顶层 `installCommand`，只识别 `src`+`use`+rewrites。单 Project 无法同时承载 web/admin 两个 SPA（各自有独立 `dist`），因此拆成三个 Project，每个用 Framework Preset 自动检测。
+
+**Q: api Project 为什么 Root Directory 留空？**
+A: 因为 NestJS 编译产物 `apps/api/dist/vercel.js` 依赖 `packages/shared` 与 `apps/api` 两个目录；留空（仓库根）时 `postinstall` 钩子（根 package.json）能一次性构建 shared + Prisma + API。若 Root Directory 设成 `apps/api`，`postinstall` 不会被触发。
+
+**Q: 为什么 root 的 `installCommand` 不生效了？**
+A: legacy builds 弃用后，CLI 58 只跑默认 `npm install`。所以共享包构建、Prisma generate、API 编译全部挪进根 `package.json` 的 `postinstall`——默认 `npm install` 一定会执行它（构建日志已确认）。
 
 **Q: H5 接口全部 404？**
-A: 99% 是 `DATABASE_URL` 没设对，或者生产 MySQL 没初始化（没跑 `db:setup:prod`）。到 Vercel 项目 → Functions → 选中对应函数查看日志。
+A: 99% 是 `DATABASE_URL` 没设对，或生产 MySQL 没初始化（没跑 `db:setup:prod`）。到 api Project → Functions → 选中对应函数查看日志。
 
 **Q: 管理后台 `/admin/login` 一直转圈、网络错误？**
-A: 登录请求是 `POST /api/admin/login` → 后端函数。检查：
-1. `DATABASE_URL` 是否正确（后端启动日志会打印 Prisma 连接错误）。
-2. `ADMIN_INIT_PASSWORD` 是否在 seed 时生效（默认 `jiucai123456`，生产务必改）。
-3. 浏览器 DevTools 看 `/api/admin/login` 响应码与内容。
+A: 登录请求是 `POST /api/admin/login` → api 域名。检查：
+1. `VITE_API_BASE` 是否正确（admin 设为 api 域名根，web 设为 api 域名 + `/api`）。
+2. `DATABASE_URL` 是否正确。
+3. 浏览器 DevTools 看实际请求 URL 与响应码。
 
 **Q: 构建报 `prisma generate` 失败？**
-A: Vercel 构建日志里搜 `prisma generate`。常见原因：`schema.prisma` 里有语法错误，或者 `DATABASE_URL` 在构建期也被 prisma 读取。`installCommand` 已显式串了 prisma generate，构建期不需要真连数据库。
-
-**Q: 第一次部署后 Prisma Client 找不到？**
-A: `vercel.json` 的 `installCommand` 已串了 `prisma generate`。如果还是报，多半是 `apps/api/src/generated/` 没生成。检查构建日志。
+A: Vercel 构建日志里搜 `prisma generate`。常见原因：`schema.prisma` 语法错误，或 Prisma CLI 版本与 `overrides` 不一致。构建期不需要真连数据库。
 
 **Q: 生产能用 SQLite 吗？**
-A: **不能**。Vercel Serverless 函数每次冷启动容器都是新的临时文件系统，SQLite 写入会丢，且 `/tmp` 容量受限。必须 MySQL（或兼容方案如 TiDB / Turso libSQL）。
-
-## 7. 为什么是「单 Vercel Project + 手动 builds 数组」而不是「Framework Preset 自动检测」
-
-新手常见想法：
-
-> "把 Root Directory 设成 `apps/web`、Framework Preset=Vite，让它自动检测 —— 不就不用写 vercel.json 了吗？"
-
-这条路**在本仓库走不通**，原因：
-
-1. **Vercel 单 Project 只能有一个 Root Directory**。设为 `apps/web` 后，admin 与 api 全部对 Vercel 不可见，没法一起部署。
-2. **Framework Preset 自动检测**只对 Root Directory 所在的那个子项目生效；它要求 src 是单框架项目根（`apps/web` 自含 vite.config + package.json 满足，但 admin/api 也想加入就要么各开 Project、要么 root 留空 + 手动 builds）。
-3. **「Root Directory=apps/web + 单 Project 同时承载 admin」是互斥的两个目标**。
-
-权衡后本仓库选：
-
-- **Root Directory 留空**（= monorepo 根），Framework Preset 选 Other，**全部构建通过 `vercel.json` 的 `builds` 数组手写**。
-- 单 Project 一次管 web + admin + api；域名唯一；rewrites 分流。
-- 代价是牺牲了"自动检测"的红利，但换来"一个 Vercel Project、一个域名"。
-
-如果想要"Framework Preset 自动检测"的红利，备选方案是把 admin 单独开第二个 Vercel Project（Root Directory=`apps/admin`），把 api 走 Railway/Render 等长进程平台。本仓库目前不采用此路线。
+A: **不能**。Vercel Serverless 函数每次冷启动容器都是新的临时文件系统，SQLite 写入会丢。必须 MySQL（或 TiDB / Turso libSQL 等兼容方案）。
 
 ---
 
 ## 附：本仓库当前已包含的部署相关配置
 
-- `vercel.json`（仓库根）— 单项目三 build + rewrites 分发
+- `vercel.json`（仓库根）— 仅 api Project 使用：`builds`（`@vercel/node` 挂 `apps/api/dist/vercel.js`）+ `/api/*` rewrites
+- `apps/web/vercel.json` — 仅 web Project：SPA rewrites → `index.html`
+- `apps/admin/vercel.json` — 仅 admin Project：SPA rewrites → `index.html`
+- `package.json`（根）— `postinstall` 钩子：构建 `@jiucaibox/shared` → `prisma generate` → 编译 `@jiucaibox/api`（产出 `apps/api/dist/vercel.js`）
 - `apps/api/src/vercel.ts` — NestJS serverless-http 入口（顶部 `import 'reflect-metadata'`）
-- `apps/api/prisma/schema.prisma` — `provider = "mysql"`
-- `apps/api/src/admin/admin.controller.ts` — 路径前缀改为 `/api/admin`
-- `apps/api/src/common/jwt-auth.guard.ts` — Admin 路由放行匹配 `/api/admin`
-- `apps/admin/src/api/index.ts` — 所有调用改用 `/api/admin/...`
-- `apps/api/package.json` — 新增 `serverless-http` 依赖与 `db:setup:prod` 脚本；`build` 改为 `tsc -p tsconfig.build.json`（去掉 `--noEmit`，让 `@vercel/node` 找到编译产物 `apps/api/dist/vercel.js`）
-- `apps/api/prisma/schema.prisma` — generator 加 `binaryTargets = ["native", "debian-openssl-3.0.x"]`（Vercel Lambda 是 Amazon Linux 2 + openssl 3）
-- `apps/api/src/vercel.ts` & `apps/api/src/main.ts` — 顶部 `import 'reflect-metadata'`（显式 side-effect，避免 esbuild tree-shake 装饰器元数据导致 NestJS 构造器注入失败）
-- `.gitignore` — 忽略 `apps/api/src/generated/` 与 `apps/api/dist/`（Prisma 生成产物 + tsc 编译产物，构建期生成）
+- `apps/api/prisma/schema.prisma` — `provider = "mysql"` + `binaryTargets = ["native", "debian-openssl-3.0.x"]`
+- `apps/api/package.json` — `build` 改为 `tsc -p tsconfig.build.json`（去掉 `--noEmit`，产出 `dist/vercel.js`）
+- `apps/api/src/vercel.ts` & `apps/api/src/main.ts` — 顶部 `import 'reflect-metadata'`（避免 esbuild tree-shake 装饰器元数据导致 NestJS 构造器注入失败）
+- `.gitignore` — 忽略 `apps/api/src/generated/` 与 `apps/api/dist/`（构建期生成）

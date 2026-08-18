@@ -2,44 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     {
-      "src": "apps/web/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "outputDirectory": "apps/web/dist"
-      }
-    },
-    {
-      "src": "apps/admin/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "outputDirectory": "apps/admin/dist"
-      }
-    },
-    {
       "src": "apps/api/dist/vercel.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "apps/api/dist/**",
-          "node_modules/.prisma/client/**",
-          "packages/shared/dist/**"
-        ]
-      }
+      "use": "@vercel/node"
     }
   ],
   "rewrites": [
     { "source": "/api/admin/:path*", "destination": "/apps/api/dist/vercel.js" },
-    { "source": "/api/:path*", "destination": "/apps/api/dist/vercel.js" },
-    { "source": "/admin", "destination": "/apps/admin/dist/index.html" },
-    { "source": "/admin/:path*", "destination": "/apps/admin/dist/index.html" },
-    { "source": "/:path*", "destination": "/apps/web/dist/index.html" }
-  ],
-  "headers": [
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
+    { "source": "/api/:path*", "destination": "/apps/api/dist/vercel.js" }
   ]
 }
