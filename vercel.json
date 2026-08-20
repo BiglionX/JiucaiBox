@@ -3,15 +3,15 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "apps/web/dist",
   "functions": {
-    "apps/api/dist/vercel.js": {
+    "api/index.js": {
       "runtime": "@vercel/node@5.10.1",
       "memory": 1024,
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/api/admin/:path*", "destination": "/apps/api/dist/vercel.js" },
-    { "source": "/api/:path*", "destination": "/apps/api/dist/vercel.js" },
+    { "source": "/api/admin/:path*", "destination": "/api/index.js" },
+    { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/admin/(.*)", "destination": "/admin/index.html" }
   ]

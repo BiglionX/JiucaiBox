@@ -10,6 +10,8 @@ node_modules/
 # Build outputs
 dist/
 build/
+# Vercel 约定的 serverless functions 目录（由 scripts/copy-api-to-vercel.cjs 生成）
+api/
 *.tsbuildinfo
 apps/api/prisma/dev.db*
 apps/api/api*.log
