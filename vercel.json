@@ -2,12 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "apps/web/dist",
-  "builds": [
-    {
-      "src": "apps/api/dist/vercel.js",
-      "use": "@vercel/node"
+  "functions": {
+    "apps/api/dist/vercel.js": {
+      "runtime": "@vercel/node",
+      "memory": 1024,
+      "maxDuration": 30
     }
-  ],
+  },
   "rewrites": [
     { "source": "/api/admin/:path*", "destination": "/apps/api/dist/vercel.js" },
     { "source": "/api/:path*", "destination": "/apps/api/dist/vercel.js" },
