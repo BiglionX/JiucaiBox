@@ -13,5 +13,8 @@
     { "source": "/api/:path*", "destination": "/api/index.js" },
     { "source": "/admin", "destination": "/apps/web/dist/admin/index.html" },
     { "source": "/admin/(.*)", "destination": "/apps/web/dist/admin/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/health", "schedule": "*/5 * * * *" }
   ]
 }

@@ -51,10 +51,11 @@ function extractMessage(err: AxiosError): string {
  */
 const baseURL = import.meta.env.VITE_API_BASE || '/api';
 
-// Hobby 计划函数默认 maxDuration = 10s；前端给到 25s 留余量，让第二次重试有机会命中热缓存。
+// Vercel Active CPU 计费模式下 Hobby 计划 maxDuration 可达 60s；
+// 前端给到 35s 留余量，覆盖冷启动跨太平洋 Prisma lazy connect（3–5s）+ 3 个 DB query。
 const instance = axios.create({
   baseURL,
-  timeout: 25000,
+  timeout: 35000,
 });
 
 instance.interceptors.request.use((config) => {
