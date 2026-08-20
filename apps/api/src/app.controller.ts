@@ -1,4 +1,4 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Header, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { Public } from './common/decorators';
 import { HomeData } from '@jiucaibox/shared';
@@ -14,8 +14,14 @@ export class AppController {
     return { status: 'ok', service: 'jiucaibox-api', time: new Date().toISOString() };
   }
 
-  /** 首页聚合数据：预警横幅、推荐课程、最新故事、电台速报 */
+  /**
+   * 首页聚合数据：预警横幅、推荐课程、最新故事、电台速报。
+   * Hobby 计划函数默认 maxDuration = 10s，冷启动可能 7-9s。
+   * 设置 s-maxage=60 让 Vercel CDN 缓存 60s：首次冷启动后，60s 内复用 CDN 响应，
+   * 避免重复触发函数 + 数据库查询。
+   */
   @Public()
+  @Header('Cache-Control', 'public, max-age=60, s-maxage=60')
   @Get('home')
   async home(): Promise<HomeData> {
     const [featuredCourses, latestStories, latestRadio] = await Promise.all([

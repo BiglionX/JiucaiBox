@@ -51,9 +51,10 @@ function extractMessage(err: AxiosError): string {
  */
 const baseURL = import.meta.env.VITE_API_BASE || '/api';
 
+// Hobby 计划函数默认 maxDuration = 10s；前端给到 25s 留余量，让第二次重试有机会命中热缓存。
 const instance = axios.create({
   baseURL,
-  timeout: 15000,
+  timeout: 25000,
 });
 
 instance.interceptors.request.use((config) => {
