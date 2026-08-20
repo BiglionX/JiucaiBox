@@ -19,7 +19,7 @@
     "db:migrate": "npm run prisma:migrate --workspace apps/api",
     "db:seed": "npm run prisma:seed --workspace apps/api",
     "start:api": "npm run start:prod --workspace apps/api",
-    "postinstall": "npm run build -w @jiucaibox/shared && (cd apps/api && npx --yes prisma@6.19.3 generate) && npm run build -w @jiucaibox/api",
+    "postinstall": "npm run build -w @jiucaibox/shared && (cd apps/api && npx --yes prisma@6.19.3 generate) && npm run build -w @jiucaibox/api && npm run build -w @jiucaibox/web && npm run build -w @jiucaibox/admin",
     "vercel-build": "node scripts/copy-api-to-vercel.cjs"
   },
   "engines": {
